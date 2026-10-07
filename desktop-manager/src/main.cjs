@@ -1,6 +1,6 @@
 const { app, BrowserWindow, Menu, Tray, dialog, ipcMain, nativeImage, safeStorage, shell } = require('electron')
 const { spawn } = require('node:child_process')
-const { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } = require('node:fs')
+const { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, readdirSync } = require('node:fs')
 const { dirname, join, resolve } = require('node:path')
 const { pathToFileURL } = require('node:url')
 
@@ -125,15 +125,22 @@ async function restartHub() {
 
 function hubStatus() {
   const config = readConfig()
+  const dataFolder = userDataPath('data')
+  const backupFolder = join(dataFolder, 'backups')
+  let backupFilesCount = 0
+  try {
+    if (existsSync(backupFolder)) {
+      backupFilesCount = readdirSync(backupFolder).filter((f) => f.endsWith('.json')).length
+    }
+  } catch {}
   return {
-    running: Boolean(apiServer?.listening),
-    localApiUrl: 'http://127.0.0.1:8788/api',
-    publicApiUrl: config.publicApiUrl || '',
-    dataFolder: userDataPath('data'),
-    startAtLogin: config.startAtLogin !== false,
-    tunnelConfigured: Boolean(tunnelToken(config)),
-    tunnelRunning: Boolean(tunnelProcess && !tunnelProcess.killed),
-    tunnelLog
+    cloudApiUrl: config.cloudApiUrl || 'https://krishna-decor-api.onrender.com/api',
+    localBackupActive: true,
+    dataFolder,
+    hasBackup: existsSync(join(dataFolder, 'krishna-decor.json')),
+    lastBackupTime,
+    backupCount: backupFilesCount,
+    startAtLogin: config.startAtLogin !== false
   }
 }
 
@@ -230,28 +237,47 @@ function installMenu() {
 }
 
 ipcMain.handle('hub:status', () => hubStatus())
-ipcMain.handle('hub:save-settings', async (_event, values) => {
+ipcMain.handle('hub:save-settings', async (_event, values = {}) => {
   const current = readConfig()
   const next = {
     ...current,
-    publicApiUrl: normalizePublicApiUrl(values.publicApiUrl),
+    cloudApiUrl: values.cloudApiUrl ? String(values.cloudApiUrl).trim() : 'https://krishna-decor-api.onrender.com/api',
     startAtLogin: values.startAtLogin !== false
-  }
-  if (values.removeTunnelToken) next.encryptedTunnelToken = ''
-  if (String(values.tunnelToken || '').trim()) {
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('Windows secure storage is unavailable. Sign in to Windows, then try again.')
-    next.encryptedTunnelToken = safeStorage.encryptString(String(values.tunnelToken).trim()).toString('base64')
   }
   writeConfig(next)
   app.setLoginItemSettings({ openAtLogin: next.startAtLogin })
-  startTunnel()
   return hubStatus()
 })
-ipcMain.handle('hub:restart-tunnel', () => {
-  startTunnel()
-  return hubStatus()
+
+ipcMain.handle('hub:test-cloud', async (_event, targetUrl) => {
+  const urlToTest = (targetUrl || 'https://krishna-decor-api.onrender.com/api').replace(/\/$/, '') + '/health'
+  const startTime = Date.now()
+  try {
+    const res = await fetch(urlToTest, { signal: AbortSignal.timeout(9000) })
+    const data = await res.json()
+    const latency = Date.now() - startTime
+    return { ok: res.ok && data.ok, latency, data }
+  } catch (error) {
+    return { ok: false, error: error.message }
+  }
 })
+
 ipcMain.handle('hub:open-data-folder', () => shell.openPath(userDataPath('data')))
+
+ipcMain.handle('hub:export-backup', async () => {
+  const dataFolder = userDataPath('data')
+  const source = join(dataFolder, 'krishna-decor.json')
+  if (!existsSync(source)) throw new Error('No local data file exists yet to export.')
+  const selection = await dialog.showSaveDialog({
+    title: 'Export Krishna Decor Data Backup',
+    defaultPath: 'krishna-decor-backup-' + new Date().toISOString().slice(0, 10) + '.json',
+    filters: [{ name: 'JSON Backup', extensions: ['json'] }]
+  })
+  if (selection.canceled || !selection.filePath) return { cancelled: true }
+  copyFileSync(source, selection.filePath)
+  return { exported: true, path: selection.filePath }
+})
+
 ipcMain.handle('hub:import-backup', async () => {
   const selection = await dialog.showOpenDialog({
     title: 'Import Krishna Decor local data',
@@ -265,7 +291,7 @@ ipcMain.handle('hub:import-backup', async () => {
   } catch {
     throw new Error('That file is not valid Krishna Decor JSON data.')
   }
-  if (!Array.isArray(imported.users) || !Array.isArray(imported.projects)) {
+  if (!Array.isArray(imported.users) && !Array.isArray(imported.staff) && !Array.isArray(imported.projects)) {
     throw new Error('That file is not a Krishna Decor data backup.')
   }
   const dataFolder = userDataPath('data')
@@ -275,7 +301,7 @@ ipcMain.handle('hub:import-backup', async () => {
     copyFileSync(destination, join(dataFolder, 'krishna-decor-before-import-' + Date.now() + '.json'))
   }
   writeFileSync(destination, JSON.stringify(imported, null, 2) + '\n', { mode: 0o600 })
-  await restartHub()
+  lastBackupTime = new Date().toISOString()
   return { imported: true }
 })
 

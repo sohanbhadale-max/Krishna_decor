@@ -70,3 +70,11 @@ body{background:#f5f7fb}.staff-brand{color:#173e73}.staff-brand>span,.submit-dra
 .side-label,.eyebrow,.project-picker{color:#52627a}
 .side-user small,.staff-projects small,.site-meta,.measurement-form small,.draft-list p,.draft-list small,.saved-empty,.no-drafts,.no-drafts p,.empty-assignments p:not(.eyebrow),.login-copy,.staff-loading{color:#52627a}
 .side-user strong,.staff-projects strong,.measurement-form label,.draft-list strong,.section-top h2{color:#334965}
+
+/* Server status badge & cloud helpers */
+.server-status-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;margin:0 0 20px;background:#eef4fc;border:1px solid #cddcf0;border-radius:99px;font-size:11px;color:#244b7d}
+.server-dot{width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 2px rgba(16,185,129,.25)}
+.server-status-badge code{font-family:Consolas,monospace;font-size:10px;color:#173e73}
+.login-error-container{display:grid;gap:8px}
+.switch-cloud-btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 12px;background:#f0fdf4;border:1px solid #86efac;border-radius:6px;color:#166534;font-size:12px;font-weight:700;cursor:pointer}
+.preset-cloud-btn{width:100%;margin-bottom:14px;padding:12px;background:#eef4fc;border:1px dashed #2563b8;border-radius:7px;color:#173e73;font-size:12px;font-weight:700;cursor:pointer}

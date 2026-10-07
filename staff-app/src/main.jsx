@@ -23,10 +23,18 @@ const AREA_OPTIONS = [
 
 async function request(path, options = {}) {
   const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
-  const response = await fetch(apiUrl(path), {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(session?.token ? { Authorization: 'Bearer ' + session.token } : {}) }
-  })
+  const url = apiUrl(path)
+  let response
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...(session?.token ? { Authorization: 'Bearer ' + session.token } : {}) }
+    })
+  } catch (fetchError) {
+    const error = new Error('Cannot reach ' + apiBase() + '. Check phone internet or tap "Use a different data server" below.')
+    error.isNetwork = true
+    throw error
+  }
   if (response.status === 204) return {}
   const body = await response.json().catch(() => ({}))
   if (!response.ok) {
@@ -164,12 +172,11 @@ function ConnectionSetup({ role, onConnected }) {
   const [address, setAddress] = useState(() => apiBase())
   const [error, setError] = useState('')
   const [testing, setTesting] = useState(false)
-  const connect = async (event) => {
-    event.preventDefault()
+  const connectWithUrl = async (targetUrl) => {
     setTesting(true)
     setError('')
     try {
-      const base = setApiBase(address)
+      const base = setApiBase(targetUrl)
       const response = await fetch(base + '/health')
       const body = await response.json().catch(() => ({}))
       if (!response.ok || !body.ok) throw new Error(body.error || 'The data server did not respond.')
@@ -180,7 +187,11 @@ function ConnectionSetup({ role, onConnected }) {
       setTesting(false)
     }
   }
-  return <main className="connection-screen"><section className="connection-card"><div className="staff-brand"><span>K</span><strong>KRISHNA <i>DECOR</i></strong></div><p className="eyebrow">{role.toUpperCase()} APP SETUP</p><h1>Connect to your workspace</h1><p>Enter the sync address for the Krishna Decor workspace (e.g. your office Wi-Fi address or cloud address).</p><form onSubmit={connect}><label>Sync address<input value={address} placeholder="http://192.168.29.18:8788/api" autoCapitalize="none" autoCorrect="off" inputMode="url" onChange={(event) => setAddress(event.target.value)} /></label>{error && <p className="login-error">{error}</p>}<button disabled={testing}>{testing ? 'Checking connection…' : 'Connect securely'}<ArrowUpRight size={17} /></button></form><small>The address is saved only on this device. Use HTTP on local Wi-Fi or HTTPS for a cloud address.</small></section></main>
+  const connect = (event) => {
+    event.preventDefault()
+    connectWithUrl(address)
+  }
+  return <main className="connection-screen"><section className="connection-card"><div className="staff-brand"><span>K</span><strong>KRISHNA <i>DECOR</i></strong></div><p className="eyebrow">{role.toUpperCase()} APP SETUP</p><h1>Connect to your workspace</h1><p>The apps synchronize automatically with the 24/7 cloud backend. You can also specify a custom address below.</p><form onSubmit={connect}><button type="button" className="preset-cloud-btn" onClick={() => { setAddress('https://krishna-decor-api.onrender.com/api'); connectWithUrl('https://krishna-decor-api.onrender.com/api'); }}>Connect to 24/7 Cloud (Render + Neon)</button><label>Custom Sync address<input value={address} placeholder="https://krishna-decor-api.onrender.com/api" autoCapitalize="none" autoCorrect="off" inputMode="url" onChange={(event) => setAddress(event.target.value)} /></label>{error && <p className="login-error">{error}</p>}<button disabled={testing}>{testing ? 'Checking connection…' : 'Save & Connect'}<ArrowUpRight size={17} /></button></form><small>Default: <code>https://krishna-decor-api.onrender.com/api</code></small></section></main>
 }
 
 function Login({ onAuthenticated, message, onConfigure }) {
@@ -188,12 +199,21 @@ function Login({ onAuthenticated, message, onConfigure }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [waiting, setWaiting] = useState(false)
+  const currentServer = apiBase()
+  const isCloud = currentServer.includes('krishna-decor-api.onrender.com')
+
+  const resetToCloud = () => {
+    clearApiBase()
+    setError('')
+    window.location.reload()
+  }
+
   const login = async (event) => {
     event.preventDefault()
     setWaiting(true); setError('')
-    try { onAuthenticated(await request('/auth/login', { method: 'POST', body: JSON.stringify({ name, email: usernameAlias(name), password, role: 'staff' }) })) } catch (requestError) { setError(requestError.message) } finally { setWaiting(false) }
+    try { onAuthenticated(await request('/auth/login', { method: 'POST', body: JSON.stringify({ name: name.trim(), email: usernameAlias(name), password, role: 'staff' }) })) } catch (requestError) { setError(requestError.message) } finally { setWaiting(false) }
   }
-  return <main className="staff-login"><section><div className="staff-brand"><span>K</span><strong>KRISHNA <i>DECOR</i></strong></div><p className="eyebrow">FIELD STAFF SIGN IN</p><h1>Ready for the site.</h1><p className="login-copy">Sign in with the name and password provided by your manager to select any manager project and save your field work.</p><form onSubmit={login} autoComplete="off"><label>Staff name<input name="staff-login-name" value={name} autoComplete="off" onChange={(event) => setName(event.target.value)} /></label><label>Password<input name="staff-login-password" type="password" minLength="8" value={password} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)} /></label>{(message || error) && <p className="login-error">{error || message}</p>}<button disabled={waiting}>{waiting ? 'Signing in…' : 'Open field desk'}<ArrowUpRight size={17} /></button></form>{onConfigure && <button className="connection-link" onClick={onConfigure}>Use a different data server</button>}</section><aside><ClipboardPenLine size={34} /><h2>Add. Edit. Save.</h2><p>Keep field entries in your cart until they are correct, then save them directly to the manager workspace and quotation flow.</p></aside></main>
+  return <main className="staff-login"><section><div className="staff-brand"><span>K</span><strong>KRISHNA <i>DECOR</i></strong></div><p className="eyebrow">FIELD STAFF SIGN IN</p><h1>Ready for the site.</h1><p className="login-copy">Sign in with the name and password provided by your manager to select any manager project and save your field work.</p><div className="server-status-badge"><span className="server-dot"></span><span>Sync: {isCloud ? '24/7 Cloud' : 'Custom'}</span><code>{currentServer}</code></div><form onSubmit={login} autoComplete="off"><label>Staff name<input name="staff-login-name" value={name} autoComplete="off" onChange={(event) => setName(event.target.value)} /></label><label>Password<input name="staff-login-password" type="password" minLength="8" value={password} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)} /></label>{(message || error) && <div className="login-error-container"><p className="login-error">{error || message}</p>{(!isCloud || /reach|connect|failed/i.test(error || message)) && <button type="button" className="switch-cloud-btn" onClick={resetToCloud}>Reset to 24/7 Cloud Server</button>}</div>}<button disabled={waiting}>{waiting ? 'Signing in…' : 'Open field desk'}<ArrowUpRight size={17} /></button></form>{onConfigure && <button className="connection-link" onClick={onConfigure}>Use a different data server</button>}</section><aside><ClipboardPenLine size={34} /><h2>Add. Edit. Save.</h2><p>Keep field entries in your cart until they are correct, then save them directly to the manager workspace and quotation flow.</p></aside></main>
 }
 
 function ProjectDesk({ project, staffId, onSaved, notify, onQueued }) {

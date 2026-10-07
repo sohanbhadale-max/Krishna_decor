@@ -1,7 +1,6 @@
 const API_SETTING_KEY = 'krishna-decor-manager-api-url'
 const builtApiUrl = String(import.meta.env.VITE_API_URL || '').trim()
-const DEFAULT_CLOUD_API_URL = 'https://krishna-decor-api.onrender.com/api'
-const DEFAULT_LOCAL_API_URL = 'http://127.0.0.1:8788/api'
+export const DEFAULT_CLOUD_API_URL = 'https://krishna-decor-api.onrender.com/api'
 
 function normalise(value) {
   const raw = String(value || '').trim()
@@ -21,7 +20,12 @@ export function apiBase() {
   if (builtApiUrl) return normalise(builtApiUrl)
   const stored = localStorage.getItem(API_SETTING_KEY)
   if (stored) {
-    return normalise(stored)
+    try {
+      const norm = normalise(stored)
+      if (!norm.includes('192.168.') && !norm.includes('localhost') && !norm.includes('127.0.0.1') && !norm.includes('10.0.')) {
+        return norm
+      }
+    } catch {}
   }
   return DEFAULT_CLOUD_API_URL
 }
@@ -31,7 +35,7 @@ export function isApiConfigured() {
 }
 
 export function canConfigureApiBase() {
-  return !builtApiUrl
+  return true
 }
 
 export function setApiBase(value) {
@@ -41,7 +45,7 @@ export function setApiBase(value) {
 }
 
 export function clearApiBase() {
-  if (!builtApiUrl) localStorage.removeItem(API_SETTING_KEY)
+  localStorage.removeItem(API_SETTING_KEY)
 }
 
 export function apiUrl(path) {

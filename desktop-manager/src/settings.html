@@ -3,25 +3,305 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Windows Hub Sync Settings</title>
+    <title>Workspace Sync & Backup Settings</title>
     <style>
-      :root { color:#24364f; background:#f5f8fc; font-family:Arial,sans-serif; }
-      * { box-sizing:border-box; } body { margin:0; } main { padding:26px 30px 30px; }
-      h1 { margin:0 0 8px; font-family:Georgia,serif; font-size:28px; } h2 { margin:0 0 10px; font-size:13px; }
-      p { color:#61718a; font-size:13px; line-height:1.55; } .card { margin-top:18px; padding:18px; border:1px solid #d6e0ee; border-radius:10px; background:#fff; }
-      label { display:grid; gap:7px; margin-top:14px; color:#334965; font-size:12px; font-weight:700; } input[type="url"], input[type="password"] { width:100%; padding:10px; border:1px solid #ccd9e9; border-radius:6px; color:#263d5c; font:13px Arial,sans-serif; }
-      .hint, small { color:#75859c; font-size:11px; line-height:1.45; } .status { display:grid; gap:7px; margin:0; padding:0; list-style:none; } .status li { display:flex; justify-content:space-between; gap:20px; font-size:12px; } .status strong { color:#334965; } code { overflow-wrap:anywhere; color:#24599e; font:11px Consolas,monospace; }
-      .buttons { display:flex; flex-wrap:wrap; gap:9px; margin-top:17px; } button { border:0; border-radius:6px; padding:9px 12px; background:#173e73; color:#fff; font-size:12px; font-weight:700; cursor:pointer; } button.secondary { border:1px solid #cbd8e9; background:#fff; color:#31567f; } button.danger { color:#a34040; border-color:#ecc9c6; } button:disabled { opacity:.6; cursor:wait; }
-      .check { display:flex; grid-template-columns:none; align-items:center; gap:8px; font-weight:400; } #message { min-height:18px; margin:13px 0 0; color:#2563b8; font-size:12px; } #message.error { color:#ad3e3e; } pre { max-height:90px; overflow:auto; padding:10px; border-radius:6px; background:#f4f7fb; color:#61718a; font:10px Consolas,monospace; white-space:pre-wrap; }
+      :root {
+        --ink: #1e293b;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --primary: #173e73;
+        --primary-hover: #1e4f94;
+        --green: #10b981;
+        --green-bg: #ecfdf5;
+        --red: #ef4444;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      main {
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 26px 22px 32px;
+      }
+      .header {
+        margin-bottom: 22px;
+      }
+      .header h1 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary);
+      }
+      .header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .card-header h2 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 99px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge.online {
+        background: var(--green-bg);
+        color: #047857;
+        border: 1px solid #a7f3d0;
+      }
+      .badge.online::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+      }
+      .badge.checking {
+        background: #f1f5f9;
+        color: #64748b;
+      }
+      .badge.offline {
+        background: #fef2f2;
+        color: var(--red);
+        border: 1px solid #fecaca;
+      }
+      .badge.offline::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--red);
+      }
+      .info-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .info-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .info-list span {
+        color: var(--muted);
+      }
+      .info-list strong {
+        color: #1e293b;
+        font-weight: 600;
+      }
+      code {
+        font-family: Consolas, monospace;
+        font-size: 11px;
+        background: #f1f5f9;
+        color: #1e40af;
+        padding: 3px 6px;
+        border-radius: 4px;
+        overflow-wrap: anywhere;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid #f1f5f9;
+      }
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.15s ease;
+      }
+      button.primary {
+        background: var(--primary);
+        color: #fff;
+      }
+      button.primary:hover {
+        background: var(--primary-hover);
+      }
+      button.secondary {
+        background: #fff;
+        border-color: #cbd5e1;
+        color: #334155;
+      }
+      button.secondary:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .check-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: #334155;
+        font-weight: 500;
+        margin-top: 8px;
+      }
+      .check-label input {
+        cursor: pointer;
+      }
+      .edit-box {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+      }
+      .edit-box.hidden {
+        display: none;
+      }
+      .edit-box input {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+      #message {
+        margin: 14px 0 0;
+        font-size: 12px;
+        min-height: 18px;
+        color: #0369a1;
+      }
+      #message.error {
+        color: #b91c1c;
+      }
+      #message.success {
+        color: #15803d;
+      }
     </style>
   </head>
   <body>
     <main>
-      <h1>Windows Hub Sync</h1>
-      <p>Your shared workspace connects automatically to the secure cloud database. The optional local Hub and its backups remain on this laptop for recovery.</p>
-      <section class="card"><h2>Hub status</h2><ul class="status"><li><span>Local backup hub</span><strong id="hubRunning">Checking…</strong></li><li><span>Local address</span><code id="localApi"></code></li><li><span>Stored backup data</span><code id="dataFolder"></code></li><li><span>Legacy Cloudflare tunnel</span><strong id="tunnelState">Not configured</strong></li></ul><div class="buttons"><button type="button" class="secondary" id="restartTunnel">Restart legacy tunnel</button><button type="button" class="secondary" id="openFolder">Open data folder</button><button type="button" class="secondary" id="importBackup">Import JSON backup</button></div></section>
-      <form class="card" id="settingsForm"><h2>Cloud workspace</h2><p class="hint">The Manager and Staff apps use <code>https://krishna-decor-api.onrender.com/api</code> automatically. No sync address needs to be entered in the apps.</p><label>Legacy public API address<input id="publicApiUrl" type="url" placeholder="Not required for cloud sync" autocomplete="off" /></label><label>Legacy Cloudflare tunnel token<input id="tunnelToken" type="password" placeholder="Not required for cloud sync" autocomplete="off" /></label><label class="check"><input id="removeTunnelToken" type="checkbox" /> Remove the stored legacy tunnel token</label><label class="check"><input id="startAtLogin" type="checkbox" checked /> Start the local backup Hub when this laptop signs in</label><div class="buttons"><button id="save" type="submit">Save local Hub settings</button></div><p id="message"></p></form>
-      <section class="card"><h2>Tunnel activity</h2><pre id="tunnelLog">No tunnel activity yet.</pre></section>
+      <div class="header">
+        <h1>Sync & Local Backup</h1>
+        <p>Krishna Decor automatically connects to your 24/7 cloud database on Render & Neon Postgres with automatic local backups on this computer.</p>
+      </div>
+
+      <!-- Cloud Workspace Card -->
+      <section class="card">
+        <div class="card-header">
+          <h2>24/7 Cloud Workspace</h2>
+          <span id="cloudStatusBadge" class="badge checking">Checking connection…</span>
+        </div>
+        <ul class="info-list">
+          <li>
+            <span>Cloud API endpoint</span>
+            <code id="cloudAddress">https://krishna-decor-api.onrender.com/api</code>
+          </li>
+          <li>
+            <span>Cloud database</span>
+            <strong id="dbProvider">Neon PostgreSQL</strong>
+          </li>
+          <li>
+            <span>Connection speed</span>
+            <strong id="cloudLatency">—</strong>
+          </li>
+          <li>
+            <span>Access scope</span>
+            <strong>Manager & Staff Android apps + Windows Desktop</strong>
+          </li>
+        </ul>
+        <div class="actions">
+          <button type="button" class="primary" id="testCloudBtn">Test Cloud Connection</button>
+          <button type="button" class="secondary" id="toggleEditBtn">Change Server Address</button>
+        </div>
+        <div id="cloudEditBox" class="edit-box hidden">
+          <label style="display:block;margin-bottom:6px;font-weight:600;font-size:11px;color:#475569;">Custom Cloud API Address</label>
+          <input type="url" id="customCloudInput" placeholder="https://krishna-decor-api.onrender.com/api" />
+          <div style="display:flex;gap:6px;">
+            <button type="button" class="primary" id="saveCloudBtn">Save Address</button>
+            <button type="button" class="secondary" id="resetCloudBtn">Restore Default Cloud</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Local Backup Card -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Local Windows Backup Engine</h2>
+          <span class="badge online">Auto-Backup Active</span>
+        </div>
+        <ul class="info-list">
+          <li>
+            <span>Primary backup store</span>
+            <code id="dataFolder">Loading…</code>
+          </li>
+          <li>
+            <span>Daily backup snapshots</span>
+            <strong id="backupCount">0 snapshots saved</strong>
+          </li>
+          <li>
+            <span>Latest backup status</span>
+            <strong id="lastBackupTime">Mirrored on every change</strong>
+          </li>
+        </ul>
+        <div class="actions">
+          <button type="button" class="secondary" id="openFolderBtn">Open Backup Folder</button>
+          <button type="button" class="secondary" id="exportBackupBtn">Export JSON Backup</button>
+          <button type="button" class="secondary" id="importBackupBtn">Import / Restore Backup</button>
+        </div>
+      </section>
+
+      <!-- App Startup Settings -->
+      <section class="card">
+        <div class="card-header">
+          <h2>Preferences</h2>
+        </div>
+        <label class="check-label">
+          <input type="checkbox" id="startAtLogin" checked />
+          Start Krishna Decor Manager automatically when Windows signs in
+        </label>
+        <div class="actions">
+          <button type="button" class="primary" id="savePrefBtn">Save Preferences</button>
+        </div>
+        <div id="message"></div>
+      </section>
     </main>
     <script src="settings.js"></script>
   </body>

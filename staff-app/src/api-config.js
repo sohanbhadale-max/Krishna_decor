@@ -1,12 +1,7 @@
 const API_SETTING_KEY = 'krishna-decor-staff-api-url'
 const builtApiUrl = String(import.meta.env.VITE_API_URL || '').trim()
 
-function isLocalHost(hostname) {
-  return ['localhost', '127.0.0.1'].includes(hostname) ||
-    /^192\.168\.\d+\.\d+$/.test(hostname) ||
-    /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
-    /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/.test(hostname)
-}
+export const DEFAULT_CLOUD_API_URL = 'https://krishna-decor-api.onrender.com/api'
 
 function normalise(value) {
   const raw = String(value || '').trim()
@@ -15,24 +10,24 @@ function normalise(value) {
   try {
     url = new URL(raw)
   } catch {
-    throw new Error('Enter a complete sync address, for example http://192.168.29.18:8788/api.')
+    throw new Error('Enter a complete sync address, for example https://krishna-decor-api.onrender.com/api.')
   }
   if (!['https:', 'http:'].includes(url.protocol)) throw new Error('The sync address must use http or https.')
-  const hostIsLocal = isLocalHost(url.hostname)
-  if (url.protocol !== 'https:' && !hostIsLocal) throw new Error('Use an HTTPS address for a remote Windows hub or an HTTP address on local Wi-Fi.')
   const base = url.toString().replace(/\/$/, '')
   return base.endsWith('/api') ? base : base + '/api'
 }
-
-const DEFAULT_CLOUD_API_URL = 'https://krishna-decor-api.onrender.com/api'
-const DEFAULT_LAN_API_URL = 'http://192.168.29.18:8788/api'
-const DEFAULT_LOCAL_API_URL = 'http://127.0.0.1:8788/api'
 
 export function apiBase() {
   if (builtApiUrl) return normalise(builtApiUrl)
   const stored = localStorage.getItem(API_SETTING_KEY)
   if (stored) {
-    return normalise(stored)
+    try {
+      const norm = normalise(stored)
+      // Auto-clean obsolete LAN/local development IPs that fail on phone networks
+      if (!norm.includes('192.168.') && !norm.includes('localhost') && !norm.includes('127.0.0.1') && !norm.includes('10.0.')) {
+        return norm
+      }
+    } catch {}
   }
   return DEFAULT_CLOUD_API_URL
 }
@@ -42,7 +37,7 @@ export function isApiConfigured() {
 }
 
 export function canConfigureApiBase() {
-  return !builtApiUrl
+  return true
 }
 
 export function setApiBase(value) {
@@ -52,7 +47,7 @@ export function setApiBase(value) {
 }
 
 export function clearApiBase() {
-  if (!builtApiUrl) localStorage.removeItem(API_SETTING_KEY)
+  localStorage.removeItem(API_SETTING_KEY)
 }
 
 export function apiUrl(path) {

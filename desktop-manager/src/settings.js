@@ -1,58 +1,155 @@
 const byId = (id) => document.getElementById(id)
-const message = byId('message')
+const messageEl = byId('message')
 
-function showMessage(text, error = false) {
-  message.textContent = text || ''
-  message.className = error ? 'error' : ''
+function showMessage(text, type = '') {
+  messageEl.textContent = text || ''
+  messageEl.className = type
+  if (text && type === 'success') {
+    setTimeout(() => {
+      if (messageEl.textContent === text) messageEl.textContent = ''
+    }, 4000)
+  }
+}
+
+let currentCloudUrl = 'https://krishna-decor-api.onrender.com/api'
+
+async function checkCloudConnection(targetUrl) {
+  const badge = byId('cloudStatusBadge')
+  const latencyEl = byId('cloudLatency')
+  const providerEl = byId('dbProvider')
+  badge.className = 'badge checking'
+  badge.textContent = 'Pinging cloud server…'
+  latencyEl.textContent = '…'
+
+  try {
+    const result = await window.krishnaHub.testCloud(targetUrl || currentCloudUrl)
+    if (result.ok) {
+      badge.className = 'badge online'
+      badge.textContent = 'Connected (24/7 Live)'
+      latencyEl.textContent = result.latency + ' ms'
+      if (result.data?.provider) {
+        providerEl.textContent = result.data.provider
+      }
+    } else {
+      badge.className = 'badge offline'
+      badge.textContent = 'Cloud offline or waking up'
+      latencyEl.textContent = 'No response'
+      showMessage('Cloud health check: ' + (result.error || 'Server did not respond.'), 'error')
+    }
+  } catch (err) {
+    badge.className = 'badge offline'
+    badge.textContent = 'Connection failed'
+    latencyEl.textContent = 'Error'
+    showMessage(err.message, 'error')
+  }
 }
 
 function render(status) {
-  byId('hubRunning').textContent = status.running ? 'Running locally' : 'Stopped'
-  byId('localApi').textContent = status.localApiUrl || ''
-  byId('dataFolder').textContent = status.dataFolder || ''
-  byId('tunnelState').textContent = !status.tunnelConfigured ? 'Not configured' : status.tunnelRunning ? 'Connected / starting' : 'Configured but stopped'
-  byId('publicApiUrl').value = status.publicApiUrl || ''
+  currentCloudUrl = status.cloudApiUrl || 'https://krishna-decor-api.onrender.com/api'
+  byId('cloudAddress').textContent = currentCloudUrl
+  byId('customCloudInput').value = currentCloudUrl
+  byId('dataFolder').textContent = status.dataFolder || 'AppData\\Roaming\\krishna-decor-manager-desktop\\data'
+  byId('backupCount').textContent = (status.backupCount || 0) + ' daily snapshot' + (status.backupCount === 1 ? '' : 's')
   byId('startAtLogin').checked = status.startAtLogin !== false
-  byId('tunnelLog').textContent = status.tunnelLog || 'No tunnel activity yet.'
+
+  if (status.lastBackupTime) {
+    byId('lastBackupTime').textContent = 'Last backup: ' + new Date(status.lastBackupTime).toLocaleTimeString()
+  } else if (status.hasBackup) {
+    byId('lastBackupTime').textContent = 'Active (Local database intact)'
+  }
 }
 
-async function refresh() {
-  try { render(await window.krishnaHub.status()) } catch (error) { showMessage(error.message, true) }
-}
-
-byId('settingsForm').addEventListener('submit', async (event) => {
-  event.preventDefault()
-  const button = byId('save')
-  button.disabled = true
-  showMessage('Saving Windows Hub settings…')
+async function init() {
   try {
-    const status = await window.krishnaHub.saveSettings({
-      publicApiUrl: byId('publicApiUrl').value,
-      tunnelToken: byId('tunnelToken').value,
-      removeTunnelToken: byId('removeTunnelToken').checked,
-      startAtLogin: byId('startAtLogin').checked
-    })
-    byId('tunnelToken').value = ''
-    byId('removeTunnelToken').checked = false
+    const status = await window.krishnaHub.status()
     render(status)
-    showMessage('Settings saved. Enter the public API address in the Android apps.')
-  } catch (error) {
-    showMessage(error.message || 'Settings could not be saved.', true)
-  } finally {
-    button.disabled = false
+    await checkCloudConnection(status.cloudApiUrl)
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
+}
+
+byId('testCloudBtn').addEventListener('click', async () => {
+  showMessage('Pinging cloud server…')
+  await checkCloudConnection(currentCloudUrl)
+  showMessage('Cloud connection tested successfully.', 'success')
+})
+
+byId('toggleEditBtn').addEventListener('click', () => {
+  const box = byId('cloudEditBox')
+  box.classList.toggle('hidden')
+})
+
+byId('saveCloudBtn').addEventListener('click', async () => {
+  const nextUrl = byId('customCloudInput').value.trim()
+  if (!nextUrl) return
+  showMessage('Saving custom cloud address…')
+  try {
+    const status = await window.krishnaHub.saveSettings({ cloudApiUrl: nextUrl })
+    render(status)
+    byId('cloudEditBox').classList.add('hidden')
+    showMessage('Cloud address updated.', 'success')
+    await checkCloudConnection(nextUrl)
+  } catch (err) {
+    showMessage(err.message, 'error')
   }
 })
 
-byId('restartTunnel').addEventListener('click', async () => {
-  try { render(await window.krishnaHub.restartTunnel()); showMessage('Tunnel restart requested.') } catch (error) { showMessage(error.message, true) }
+byId('resetCloudBtn').addEventListener('click', async () => {
+  const defaultUrl = 'https://krishna-decor-api.onrender.com/api'
+  byId('customCloudInput').value = defaultUrl
+  showMessage('Restoring default 24/7 cloud address…')
+  try {
+    const status = await window.krishnaHub.saveSettings({ cloudApiUrl: defaultUrl })
+    render(status)
+    byId('cloudEditBox').classList.add('hidden')
+    showMessage('Default cloud address restored.', 'success')
+    await checkCloudConnection(defaultUrl)
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
 })
-byId('openFolder').addEventListener('click', () => window.krishnaHub.openDataFolder())
-byId('importBackup').addEventListener('click', async () => {
+
+byId('openFolderBtn').addEventListener('click', () => {
+  window.krishnaHub.openDataFolder()
+})
+
+byId('exportBackupBtn').addEventListener('click', async () => {
+  try {
+    const result = await window.krishnaHub.exportBackup()
+    if (result?.exported) {
+      showMessage('Data backup exported successfully.', 'success')
+    }
+  } catch (err) {
+    showMessage(err.message || 'Export failed.', 'error')
+  }
+})
+
+byId('importBackupBtn').addEventListener('click', async () => {
   try {
     const result = await window.krishnaHub.importBackup()
-    if (result?.imported) { showMessage('Local data imported. Team members must sign in again.'); await refresh() }
-  } catch (error) { showMessage(error.message || 'Import failed.', true) }
+    if (result?.imported) {
+      showMessage('Local backup imported successfully. Hub data updated.', 'success')
+      const status = await window.krishnaHub.status()
+      render(status)
+    }
+  } catch (err) {
+    showMessage(err.message || 'Import failed.', 'error')
+  }
+})
+
+byId('savePrefBtn').addEventListener('click', async () => {
+  showMessage('Saving preferences…')
+  try {
+    const status = await window.krishnaHub.saveSettings({
+      startAtLogin: byId('startAtLogin').checked
+    })
+    render(status)
+    showMessage('Preferences saved successfully.', 'success')
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
 })
 
 window.krishnaHub.onStatusChange(render)
-refresh()
+init()
