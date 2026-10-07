@@ -1,0 +1,63 @@
+{
+  "name": "krishna-decor-manager-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "main": "src/main.cjs",
+  "scripts": {
+    "build:manager": "node scripts/build-manager.mjs",
+    "start": "npm run build:manager && electron .",
+    "dist:win": "npm run build:manager && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^39.2.6",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "in.krishnadecor.manager",
+    "productName": "Krishna Decor Manager",
+    "artifactName": "Krishna-Decor-Manager-Setup-${version}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../manager-app/dist",
+        "to": "manager-app"
+      },
+      {
+        "from": "../api",
+        "to": "api",
+        "filter": [
+          "**/*",
+          "!data/**",
+          "!node_modules/**"
+        ]
+      },
+      {
+        "from": "resources/cloudflared.exe",
+        "to": "cloudflared.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

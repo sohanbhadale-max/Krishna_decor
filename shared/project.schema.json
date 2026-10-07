@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Krishna Decor project hand-off",
+  "type": "object",
+  "required": ["id", "customer", "areas"],
+  "properties": {
+    "id": { "type": "string" },
+    "customer": { "type": "object" },
+    "areas": { "type": "array" },
+    "staffDrafts": { "type": "array", "description": "Measurement and product drafts submitted by staff, including the staff user name and timestamp." },
+    "activityLog": { "type": "array", "description": "Accountability entries that record the staff user name, action, project detail and timestamp." }
+  }
+}

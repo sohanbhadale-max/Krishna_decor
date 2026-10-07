@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Production & Build outputs
+dist/
+*/dist/
+release/
+desktop-manager/release/
+
+# Environment files
+.env
+.env.local
+.env*.local
+!.env.example
+
+# Database runtime & logs
+api/data/*.json
+api/data/*.tmp
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+.vercel

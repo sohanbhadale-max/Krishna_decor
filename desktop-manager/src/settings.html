@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Windows Hub Sync Settings</title>
+    <style>
+      :root { color:#24364f; background:#f5f8fc; font-family:Arial,sans-serif; }
+      * { box-sizing:border-box; } body { margin:0; } main { padding:26px 30px 30px; }
+      h1 { margin:0 0 8px; font-family:Georgia,serif; font-size:28px; } h2 { margin:0 0 10px; font-size:13px; }
+      p { color:#61718a; font-size:13px; line-height:1.55; } .card { margin-top:18px; padding:18px; border:1px solid #d6e0ee; border-radius:10px; background:#fff; }
+      label { display:grid; gap:7px; margin-top:14px; color:#334965; font-size:12px; font-weight:700; } input[type="url"], input[type="password"] { width:100%; padding:10px; border:1px solid #ccd9e9; border-radius:6px; color:#263d5c; font:13px Arial,sans-serif; }
+      .hint, small { color:#75859c; font-size:11px; line-height:1.45; } .status { display:grid; gap:7px; margin:0; padding:0; list-style:none; } .status li { display:flex; justify-content:space-between; gap:20px; font-size:12px; } .status strong { color:#334965; } code { overflow-wrap:anywhere; color:#24599e; font:11px Consolas,monospace; }
+      .buttons { display:flex; flex-wrap:wrap; gap:9px; margin-top:17px; } button { border:0; border-radius:6px; padding:9px 12px; background:#173e73; color:#fff; font-size:12px; font-weight:700; cursor:pointer; } button.secondary { border:1px solid #cbd8e9; background:#fff; color:#31567f; } button.danger { color:#a34040; border-color:#ecc9c6; } button:disabled { opacity:.6; cursor:wait; }
+      .check { display:flex; grid-template-columns:none; align-items:center; gap:8px; font-weight:400; } #message { min-height:18px; margin:13px 0 0; color:#2563b8; font-size:12px; } #message.error { color:#ad3e3e; } pre { max-height:90px; overflow:auto; padding:10px; border-radius:6px; background:#f4f7fb; color:#61718a; font:10px Consolas,monospace; white-space:pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Windows Hub Sync</h1>
+      <p>Your shared workspace connects automatically to the secure cloud database. The optional local Hub and its backups remain on this laptop for recovery.</p>
+      <section class="card"><h2>Hub status</h2><ul class="status"><li><span>Local backup hub</span><strong id="hubRunning">Checking…</strong></li><li><span>Local address</span><code id="localApi"></code></li><li><span>Stored backup data</span><code id="dataFolder"></code></li><li><span>Legacy Cloudflare tunnel</span><strong id="tunnelState">Not configured</strong></li></ul><div class="buttons"><button type="button" class="secondary" id="restartTunnel">Restart legacy tunnel</button><button type="button" class="secondary" id="openFolder">Open data folder</button><button type="button" class="secondary" id="importBackup">Import JSON backup</button></div></section>
+      <form class="card" id="settingsForm"><h2>Cloud workspace</h2><p class="hint">The Manager and Staff apps use <code>https://krishna-decor-api.onrender.com/api</code> automatically. No sync address needs to be entered in the apps.</p><label>Legacy public API address<input id="publicApiUrl" type="url" placeholder="Not required for cloud sync" autocomplete="off" /></label><label>Legacy Cloudflare tunnel token<input id="tunnelToken" type="password" placeholder="Not required for cloud sync" autocomplete="off" /></label><label class="check"><input id="removeTunnelToken" type="checkbox" /> Remove the stored legacy tunnel token</label><label class="check"><input id="startAtLogin" type="checkbox" checked /> Start the local backup Hub when this laptop signs in</label><div class="buttons"><button id="save" type="submit">Save local Hub settings</button></div><p id="message"></p></form>
+      <section class="card"><h2>Tunnel activity</h2><pre id="tunnelLog">No tunnel activity yet.</pre></section>
+    </main>
+    <script src="settings.js"></script>
+  </body>
+</html>
