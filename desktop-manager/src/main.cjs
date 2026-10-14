@@ -4,6 +4,19 @@ const { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, readdi
 const { dirname, join, resolve } = require('node:path')
 const { pathToFileURL } = require('node:url')
 
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+}
+
 let mainWindow
 let settingsWindow
 let apiServer
@@ -236,6 +249,16 @@ function installMenu() {
   ]))
 }
 
+ipcMain.on('hub:get-cloud-url-sync', (event) => {
+  const config = readConfig()
+  event.returnValue = config.cloudApiUrl || 'https://krishna-decor-api.onrender.com/api'
+})
+
+ipcMain.handle('hub:get-cloud-url', () => {
+  const config = readConfig()
+  return config.cloudApiUrl || 'https://krishna-decor-api.onrender.com/api'
+})
+
 ipcMain.handle('hub:status', () => hubStatus())
 ipcMain.handle('hub:save-settings', async (_event, values = {}) => {
   const current = readConfig()
@@ -246,6 +269,10 @@ ipcMain.handle('hub:save-settings', async (_event, values = {}) => {
   }
   writeConfig(next)
   app.setLoginItemSettings({ openAtLogin: next.startAtLogin })
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('hub:cloud-url-changed', next.cloudApiUrl)
+  }
+  broadcastStatus()
   return hubStatus()
 })
 
@@ -260,6 +287,37 @@ ipcMain.handle('hub:test-cloud', async (_event, targetUrl) => {
   } catch (error) {
     return { ok: false, error: error.message }
   }
+})
+
+ipcMain.handle('hub:sync-cloud', async () => {
+  const config = readConfig()
+  const cloudUrl = (config.cloudApiUrl || 'https://krishna-decor-api.onrender.com/api').replace(/\/$/, '')
+  const dataFolder = userDataPath('data')
+  const dataFile = join(dataFolder, 'krishna-decor.json')
+
+  try {
+    const healthRes = await fetch(cloudUrl + '/health', { signal: AbortSignal.timeout(8000) })
+    if (!healthRes.ok) throw new Error('Cloud health check failed.')
+  } catch (error) {
+    return { ok: false, error: 'Could not connect to 24/7 cloud: ' + (error.message || 'offline') }
+  }
+
+  // Trigger real-time sync inside the main manager window if active
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('hub:trigger-sync')
+  }
+
+  let syncedProjectsCount = 0
+  if (existsSync(dataFile)) {
+    try {
+      const localData = JSON.parse(readFileSync(dataFile, 'utf8'))
+      syncedProjectsCount = (localData.projects || []).length
+    } catch {}
+  }
+
+  lastBackupTime = new Date().toISOString()
+  broadcastStatus()
+  return { ok: true, syncedProjects: syncedProjectsCount, timestamp: lastBackupTime }
 })
 
 ipcMain.handle('hub:open-data-folder', () => shell.openPath(userDataPath('data')))
@@ -305,6 +363,25 @@ ipcMain.handle('hub:import-backup', async () => {
   return { imported: true }
 })
 
+const BASELINE_USERS = [
+  {
+    id: '3c8d7d36-7fa6-4b1c-8526-179be4456a93',
+    name: 'sohan',
+    email: 'sohanbhadale1234@gmail.com',
+    role: 'manager',
+    passwordHash: 'ca1e12c2e12072a2f5e68b801dee0e0e:19267edcfa42e320ee365168a67f67e5f27ecdf7528b805460e0dc687b25a83141080ee917040f8f0a5cb6a20d7501ec02cfeefbda8b6a6d8efee81d5dc1e573',
+    createdAt: '2026-10-07T16:36:39.226Z'
+  },
+  {
+    id: '137a7965-b105-40f7-9c37-d6e2e984f8d1',
+    name: 'isra',
+    email: 'isra@krishnadecor.local',
+    role: 'staff',
+    passwordHash: '0b585636702c3e6d4b5eccaf3a35ed75:fd47484b8ddfc6ad2f2f32875035bbec9cae3339e7dd532a4b3aa448a9a2bcf3058f02320a4545f4251e9970f27df9052ff12ecb820d965a435267ac3a409cdb',
+    createdAt: '2026-10-14T07:32:32.442Z'
+  }
+]
+
 let lastBackupTime = null
 
 ipcMain.handle('hub:save-backup', async (_event, payload) => {
@@ -312,11 +389,70 @@ ipcMain.handle('hub:save-backup', async (_event, payload) => {
   const dataFolder = userDataPath('data')
   mkdirSync(dataFolder, { recursive: true })
   const destination = join(dataFolder, 'krishna-decor.json')
+
+  let existingData = { users: [], projects: [] }
+  if (existsSync(destination)) {
+    try {
+      const parsed = JSON.parse(readFileSync(destination, 'utf8'))
+      if (parsed && typeof parsed === 'object') {
+        existingData = {
+          users: Array.isArray(parsed.users) ? parsed.users : [],
+          projects: Array.isArray(parsed.projects) ? parsed.projects : []
+        }
+      }
+    } catch {}
+  }
+
+  // Load template users if available
+  let templateUsers = [...BASELINE_USERS]
+  const localTemplate = resolve(__dirname, '../../api/data/krishna-decor.json')
+  const packagedTemplate = join(process.resourcesPath || '', 'api', 'data', 'krishna-decor.json')
+  const templateFile = existsSync(localTemplate) ? localTemplate : (existsSync(packagedTemplate) ? packagedTemplate : null)
+  if (templateFile) {
+    try {
+      const tmpl = JSON.parse(readFileSync(templateFile, 'utf8'))
+      if (Array.isArray(tmpl.users) && tmpl.users.length > 0) templateUsers = tmpl.users
+    } catch {}
+  }
+
+  // Preserve users: NEVER allow a backup save to overwrite or strip passwordHash!
+  let usersToSave = existingData.users.filter((u) => Boolean(u.passwordHash))
+  if (usersToSave.length === 0) {
+    usersToSave = [...templateUsers]
+  }
+
+  // If existing users had entries without passwordHash, heal them
+  for (const existingUser of existingData.users) {
+    if (!usersToSave.some((u) => u.id === existingUser.id || u.name?.toLowerCase() === existingUser.name?.toLowerCase())) {
+      const match = templateUsers.find((t) => t.id === existingUser.id || t.name?.toLowerCase() === existingUser.name?.toLowerCase() || (t.role === existingUser.role && t.passwordHash))
+      usersToSave.push({
+        ...existingUser,
+        passwordHash: existingUser.passwordHash || match?.passwordHash,
+        email: existingUser.email || match?.email
+      })
+    }
+  }
+
+  // Ensure both manager and staff are present with passwordHash
+  if (!usersToSave.some((u) => u.role === 'manager' && u.passwordHash)) {
+    const mgr = templateUsers.find((t) => t.role === 'manager' && t.passwordHash) || BASELINE_USERS[0]
+    usersToSave.unshift(mgr)
+  }
+  if (!usersToSave.some((u) => u.role === 'staff' && u.passwordHash)) {
+    const stf = templateUsers.find((t) => t.role === 'staff' && t.passwordHash) || BASELINE_USERS[1]
+    usersToSave.push(stf)
+  }
+
+  const projectsToSave = (Array.isArray(payload.projects) && payload.projects.length > 0)
+    ? payload.projects
+    : existingData.projects
+
   const dataToSave = {
-    users: Array.isArray(payload.users) ? payload.users : Array.isArray(payload.staff) ? payload.staff : [],
-    projects: Array.isArray(payload.projects) ? payload.projects : [],
+    users: usersToSave,
+    projects: projectsToSave,
     lastBackup: new Date().toISOString()
   }
+
   writeFileSync(destination, JSON.stringify(dataToSave, null, 2) + '\n', { mode: 0o600 })
   const backupFolder = join(dataFolder, 'backups')
   mkdirSync(backupFolder, { recursive: true })

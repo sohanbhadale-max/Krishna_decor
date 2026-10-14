@@ -69,6 +69,23 @@ async function init() {
   }
 }
 
+byId('syncCloudBtn').addEventListener('click', async () => {
+  showMessage('Synchronizing local database with 24/7 cloud…')
+  try {
+    const result = await window.krishnaHub.syncCloud()
+    if (result.ok) {
+      showMessage('Synchronized successfully! ' + (result.syncedProjects ? result.syncedProjects + ' projects in sync.' : 'All data up to date.'), 'success')
+      const status = await window.krishnaHub.status()
+      render(status)
+      await checkCloudConnection(status.cloudApiUrl)
+    } else {
+      showMessage(result.error || 'Cloud offline or waking up. Local database intact.', 'error')
+    }
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
+})
+
 byId('testCloudBtn').addEventListener('click', async () => {
   showMessage('Pinging cloud server…')
   await checkCloudConnection(currentCloudUrl)

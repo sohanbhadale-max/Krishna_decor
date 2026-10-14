@@ -17,6 +17,43 @@ let dataFile = join(dataDirectory, 'krishna-decor.json')
 let allowedOrigins = defaultOrigins
 const sessions = new Map()
 
+function sessionsFilePath() {
+  return join(dataDirectory, 'sessions.json')
+}
+
+function loadSessionsFromDisk() {
+  try {
+    const file = sessionsFilePath()
+    if (!existsSync(file)) return
+    const stored = JSON.parse(readFileSync(file, 'utf8'))
+    if (!Array.isArray(stored)) return
+    const nowTs = Date.now()
+    for (const item of stored) {
+      if (item && item.token && item.userId && Number(item.expiresAt) > nowTs) {
+        sessions.set(item.token, { userId: item.userId, expiresAt: Number(item.expiresAt) })
+      }
+    }
+  } catch {}
+}
+
+function saveSessionsToDisk() {
+  try {
+    mkdirSync(dataDirectory, { recursive: true })
+    const nowTs = Date.now()
+    const active = []
+    for (const [token, session] of sessions) {
+      if (session && session.expiresAt > nowTs) {
+        active.push({ token, userId: session.userId, expiresAt: session.expiresAt })
+      }
+    }
+    const file = sessionsFilePath()
+    const temporaryFile = file + '.tmp'
+    writeFileSync(temporaryFile, JSON.stringify(active, null, 2) + '\n', { mode: 0o600 })
+    writeFileSync(file, readFileSync(temporaryFile), { mode: 0o600 })
+    unlinkSync(temporaryFile)
+  } catch {}
+}
+
 function configure(options = {}) {
   dataDirectory = resolve(options.dataDirectory || process.env.KD_DATA_DIR || defaultDataDirectory)
   dataFile = join(dataDirectory, 'krishna-decor.json')
@@ -25,27 +62,126 @@ function configure(options = {}) {
     : String(process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '').split(',')
   allowedOrigins = [...new Set([...defaultOrigins, ...configuredOrigins.map((origin) => String(origin).trim()).filter(Boolean)])]
   sessions.clear()
+  loadSessionsFromDisk()
 }
 
+const BASELINE_USERS = [
+  {
+    id: '3c8d7d36-7fa6-4b1c-8526-179be4456a93',
+    name: 'sohan',
+    email: 'sohanbhadale1234@gmail.com',
+    role: 'manager',
+    passwordHash: 'ca1e12c2e12072a2f5e68b801dee0e0e:19267edcfa42e320ee365168a67f67e5f27ecdf7528b805460e0dc687b25a83141080ee917040f8f0a5cb6a20d7501ec02cfeefbda8b6a6d8efee81d5dc1e573',
+    createdAt: '2026-10-07T16:36:39.226Z'
+  },
+  {
+    id: '137a7965-b105-40f7-9c37-d6e2e984f8d1',
+    name: 'isra',
+    email: 'isra@krishnadecor.local',
+    role: 'staff',
+    passwordHash: '0b585636702c3e6d4b5eccaf3a35ed75:fd47484b8ddfc6ad2f2f32875035bbec9cae3339e7dd532a4b3aa448a9a2bcf3058f02320a4545f4251e9970f27df9052ff12ecb820d965a435267ac3a409cdb',
+    createdAt: '2026-10-14T07:32:32.442Z'
+  }
+]
+
 function initialData() {
-  return { users: [], projects: [] }
+  return { users: [...BASELINE_USERS], projects: [] }
+}
+
+function templateData() {
+  const templatePath = join(defaultDataDirectory, 'krishna-decor.json')
+  if (existsSync(templatePath)) {
+    try {
+      const parsed = JSON.parse(readFileSync(templatePath, 'utf8'))
+      if (parsed && typeof parsed === 'object') {
+        const users = Array.isArray(parsed.users) ? parsed.users : []
+        const projects = Array.isArray(parsed.projects) ? parsed.projects : []
+        return {
+          users: users.length > 0 ? users : [...BASELINE_USERS],
+          projects
+        }
+      }
+    } catch {}
+  }
+  return initialData()
 }
 
 function readData() {
-  if (!existsSync(dataFile)) return initialData()
+  if (!existsSync(dataFile)) {
+    const tmpl = templateData()
+    try { writeData(tmpl) } catch {}
+    return tmpl
+  }
   try {
     const stored = JSON.parse(readFileSync(dataFile, 'utf8'))
-    return {
-      users: Array.isArray(stored.users) ? stored.users : [],
-      projects: Array.isArray(stored.projects) ? stored.projects : []
+    let users = Array.isArray(stored.users) ? stored.users : []
+    const projects = Array.isArray(stored.projects) ? stored.projects : []
+    let modified = false
+
+    const tmpl = templateData()
+    const referenceUsers = [...(tmpl.users || []), ...BASELINE_USERS]
+
+    users = users.map((u) => {
+      if (u.passwordHash) return u
+      const ref = referenceUsers.find((r) => r.id === u.id || r.name?.toLowerCase() === u.name?.toLowerCase() || (r.role === u.role && r.passwordHash))
+      if (ref?.passwordHash) {
+        modified = true
+        return { ...u, passwordHash: ref.passwordHash, email: u.email || ref.email }
+      }
+      return u
+    })
+
+    if (!users.some((u) => u.role === 'manager' && u.passwordHash)) {
+      const mgr = referenceUsers.find((u) => u.role === 'manager' && u.passwordHash)
+      if (mgr) { users.unshift(mgr); modified = true }
     }
+
+    if (!users.some((u) => u.role === 'staff' && u.passwordHash)) {
+      const stf = referenceUsers.find((u) => u.role === 'staff' && u.passwordHash)
+      if (stf) { users.push(stf); modified = true }
+    }
+
+    if (modified) {
+      try {
+        const healed = { ...stored, users, projects }
+        const temporaryFile = dataFile + '.tmp'
+        writeFileSync(temporaryFile, JSON.stringify(healed, null, 2) + '\n', { mode: 0o600 })
+        writeFileSync(dataFile, readFileSync(temporaryFile), { mode: 0o600 })
+        unlinkSync(temporaryFile)
+      } catch {}
+    }
+
+    return { users, projects }
   } catch {
-    throw new Error('The local data file cannot be read. Restore api/data/krishna-decor.json from a backup.')
+    const fallback = templateData()
+    try { writeData(fallback) } catch {}
+    return fallback
   }
 }
 
 function writeData(data) {
   mkdirSync(dataDirectory, { recursive: true })
+  if (!Array.isArray(data.users)) data.users = []
+  const tmpl = templateData()
+  const referenceUsers = [...(tmpl.users || []), ...BASELINE_USERS]
+
+  // Protect every user's passwordHash
+  data.users = data.users.map((u) => {
+    if (u.passwordHash) return u
+    const match = referenceUsers.find((r) => r.id === u.id || r.name?.toLowerCase() === u.name?.toLowerCase() || (r.role === u.role && r.passwordHash))
+    if (match?.passwordHash) return { ...u, passwordHash: match.passwordHash, email: u.email || match.email }
+    return u
+  })
+
+  if (!data.users.some((u) => u.role === 'manager' && u.passwordHash)) {
+    const mgr = referenceUsers.find((u) => u.role === 'manager' && u.passwordHash)
+    if (mgr) data.users.unshift(mgr)
+  }
+  if (!data.users.some((u) => u.role === 'staff' && u.passwordHash)) {
+    const stf = referenceUsers.find((u) => u.role === 'staff' && u.passwordHash)
+    if (stf) data.users.push(stf)
+  }
+
   const temporaryFile = dataFile + '.tmp'
   writeFileSync(temporaryFile, JSON.stringify(data, null, 2) + '\n', { mode: 0o600 })
   writeFileSync(dataFile, readFileSync(temporaryFile), { mode: 0o600 })
@@ -102,6 +238,7 @@ function userFromRequest(request, requiredRole) {
 function newSession(user) {
   const token = randomBytes(32).toString('base64url')
   sessions.set(token, { userId: user.id, expiresAt: Date.now() + 1000 * 60 * 60 * 12 })
+  saveSessionsToDisk()
   return { token, user: publicUser(user) }
 }
 
@@ -132,25 +269,91 @@ async function jsonBody(request) {
 }
 
 function projectShape(values = {}) {
+  const id = values.id && typeof values.id === 'string' ? cleanText(values.id, 100) : randomUUID()
   return {
-    id: randomUUID(),
+    id,
     name: cleanText(values.name, 100) || 'Untitled project',
-    status: 'Needs site details',
-    createdAt: now(),
-    updatedAt: now(),
-    assignedStaffId: '',
-    customer: { name: cleanText(values.customerName, 100), address: '', location: '', reference: '', visitDate: '', sitePhoto: '' },
-    areas: [],
-    quotations: [],
-    payments: [],
-    staffDrafts: [],
-    activityLog: [],
-    syncMutations: []
+    status: cleanText(values.status, 60) || 'Needs site details',
+    createdAt: values.createdAt || now(),
+    updatedAt: values.updatedAt || now(),
+    assignedStaffId: cleanText(values.assignedStaffId, 100),
+    customer: {
+      name: cleanText(values.customer?.name || values.customerName, 100),
+      address: cleanText(values.customer?.address, 600),
+      location: cleanText(values.customer?.location, 160),
+      reference: cleanText(values.customer?.reference, 160),
+      visitDate: cleanText(values.customer?.visitDate, 20),
+      sitePhoto: typeof values.customer?.sitePhoto === 'string' && values.customer.sitePhoto.length < 900000 ? values.customer.sitePhoto : ''
+    },
+    areas: Array.isArray(values.areas) ? values.areas : [],
+    quotations: Array.isArray(values.quotations) ? values.quotations : [],
+    payments: Array.isArray(values.payments) ? values.payments : [],
+    staffDrafts: Array.isArray(values.staffDrafts) ? values.staffDrafts : [],
+    activityLog: Array.isArray(values.activityLog) ? values.activityLog : [],
+    syncMutations: Array.isArray(values.syncMutations) ? values.syncMutations : []
   }
 }
 
+function mergeDuplicateQuotations(quotations = []) {
+  if (!Array.isArray(quotations) || quotations.length <= 1) return quotations || []
+  const merged = []
+  const idMap = new Map()
+
+  for (const raw of quotations) {
+    if (!raw) continue
+    const id = String(raw.id || '').trim()
+    if (!id) continue
+
+    if (idMap.has(id)) {
+      const existing = idMap.get(id)
+      const status = (existing.status === 'Approved' || raw.status === 'Approved')
+        ? 'Approved'
+        : (existing.status === 'Sent' || raw.status === 'Sent')
+          ? 'Sent'
+          : 'Draft'
+      const date = (raw.date && raw.date > (existing.date || '')) ? raw.date : (existing.date || raw.date)
+
+      const itemMap = new Map()
+      for (const it of (existing.items || [])) {
+        const key = it.id || ((it.area || '') + '::' + (it.product || ''))
+        itemMap.set(key, { ...it })
+      }
+      for (const it of (raw.items || [])) {
+        const key = it.id || ((it.area || '') + '::' + (it.product || ''))
+        if (itemMap.has(key)) {
+          const prev = itemMap.get(key)
+          itemMap.set(key, {
+            ...prev,
+            ...it,
+            quantity: Number(it.quantity) || Number(prev.quantity) || 0,
+            unitPrice: Number(it.unitPrice) || Number(prev.unitPrice) || 0,
+            gst: Number(it.gst) || Number(prev.gst) || 0,
+            note: it.note || prev.note || ''
+          })
+        } else {
+          itemMap.set(key, { ...it })
+        }
+      }
+      existing.status = status
+      existing.date = date
+      if (raw.title) existing.title = raw.title
+      existing.items = Array.from(itemMap.values())
+    } else {
+      const copy = {
+        ...raw,
+        id,
+        items: Array.isArray(raw.items) ? raw.items.map((it) => ({ ...it })) : []
+      }
+      idMap.set(id, copy)
+      merged.push(copy)
+    }
+  }
+
+  return merged
+}
+
 function safePatch(body) {
-  const allowed = ['name', 'status', 'assignedStaffId', 'customer', 'areas', 'quotations', 'payments']
+  const allowed = ['name', 'status', 'assignedStaffId', 'customer', 'areas', 'quotations', 'payments', 'staffDrafts', 'activityLog', 'syncMutations']
   const patch = {}
   for (const key of allowed) {
     if (Object.hasOwn(body, key)) patch[key] = body[key]
@@ -166,9 +369,10 @@ function safePatch(body) {
       sitePhoto: typeof patch.customer.sitePhoto === 'string' && patch.customer.sitePhoto.length < 900000 ? patch.customer.sitePhoto : ''
     }
   }
-  for (const list of ['areas', 'quotations', 'payments']) {
+  for (const list of ['areas', 'quotations', 'payments', 'staffDrafts', 'activityLog', 'syncMutations']) {
     if (patch[list] && !Array.isArray(patch[list])) delete patch[list]
   }
+  if (Array.isArray(patch.quotations)) patch.quotations = mergeDuplicateQuotations(patch.quotations)
   return patch
 }
 
@@ -225,7 +429,7 @@ function projectForStaff(project, user) {
 
 function staffSubmission(values, staff) {
   const submission = {
-    id: randomUUID(),
+    id: values.id ? cleanText(values.id, 120) : randomUUID(),
     staffId: staff.id,
     staffName: staff.name,
     status: 'Saved',
@@ -235,7 +439,10 @@ function staffSubmission(values, staff) {
     height: Number(values.height) || 0,
     unit: ['in', 'ft', 'm', 'cm'].includes(values.unit) ? values.unit : 'in',
     product: cleanText(values.product, 100),
-    notes: cleanText(values.notes, 500)
+    notes: cleanText(values.notes, 500),
+    clampType: cleanText(values.clampType, 100),
+    curtainSetId: cleanText(values.curtainSetId, 100),
+    curtainSystem: cleanText(values.curtainSystem, 100)
   }
   if (!submission.area || !submission.product || submission.width <= 0 || submission.height <= 0) {
     throw new Error('Each cart item needs an area, product, width and height.')
@@ -276,9 +483,15 @@ export function createLocalApiServer(options = {}) {
     if (request.method === 'POST' && path === '/api/auth/login') {
       const body = await jsonBody(request)
       const role = body.role === 'staff' ? 'staff' : 'manager'
-      const name = cleanText(body.name, 100).toLowerCase()
+      const rawIdentifier = cleanText(body.name || body.email || '', 100).toLowerCase()
+      const usernamePart = rawIdentifier.split('@')[0]
       const password = String(body.password || '')
-      const user = readData().users.find((item) => item.role === role && String(item.name || '').toLowerCase() === name)
+      const user = readData().users.find((item) => item.role === role && (
+        String(item.name || '').toLowerCase() === rawIdentifier ||
+        String(item.name || '').toLowerCase() === usernamePart ||
+        (item.email && String(item.email).toLowerCase() === rawIdentifier) ||
+        (item.email && String(item.email).toLowerCase() === usernamePart)
+      ))
       if (!user || !passwordMatches(password, user.passwordHash)) {
         return send(response, 401, { error: 'User name or password is incorrect.' }, origin)
       }
@@ -287,6 +500,7 @@ export function createLocalApiServer(options = {}) {
     if (request.method === 'POST' && path === '/api/auth/logout') {
       const token = String(request.headers.authorization || '').replace(/^Bearer\s+/, '')
       sessions.delete(token)
+      saveSessionsToDisk()
       return send(response, 204, {}, origin)
     }
 
@@ -299,13 +513,27 @@ export function createLocalApiServer(options = {}) {
     if (request.method === 'POST' && path === '/api/projects') {
       if (!manager) return send(response, 401, { error: 'Manager authentication is required.' }, origin)
       const data = readData()
-      const project = projectShape(await jsonBody(request))
+      const body = await jsonBody(request)
+      const existingIndex = body.id ? data.projects.findIndex((item) => item.id === body.id) : -1
+      if (existingIndex >= 0) {
+        const patch = safePatch(body)
+        data.projects[existingIndex] = { ...data.projects[existingIndex], ...patch, updatedAt: now() }
+        writeData(data)
+        return send(response, 200, { project: data.projects[existingIndex] }, origin)
+      }
+      const project = projectShape(body)
       data.projects.unshift(project)
       writeData(data)
       return send(response, 201, { project }, origin)
     }
     const projectMatch = path.match(/^\/api\/projects\/([^/]+)$/)
-    if (request.method === 'PUT' && projectMatch) {
+    if (request.method === 'GET' && projectMatch) {
+      if (!manager) return send(response, 401, { error: 'Manager authentication is required.' }, origin)
+      const project = readData().projects.find((item) => item.id === projectMatch[1])
+      if (!project) return send(response, 404, { error: 'Project not found.' }, origin)
+      return send(response, 200, { project }, origin)
+    }
+    if ((request.method === 'PUT' || request.method === 'PATCH') && projectMatch) {
       if (!manager) return send(response, 401, { error: 'Manager authentication is required.' }, origin)
       const data = readData()
       const index = data.projects.findIndex((item) => item.id === projectMatch[1])
@@ -335,11 +563,12 @@ export function createLocalApiServer(options = {}) {
       const name = cleanText(body.name, 100)
       const password = String(body.password || '')
       const data = readData()
-      if (!name || password.length < 8) return send(response, 400, { error: 'Enter a staff name and a password of at least 8 characters.' }, origin)
-      if (data.users.some((item) => item.role === 'staff' && String(item.name || '').toLowerCase() === name.toLowerCase())) {
-        return send(response, 409, { error: 'A staff account already uses this name.' }, origin)
+      const existingUser = data.users.find((item) => item.role === 'staff' && (item.id === body.id || String(item.name || '').toLowerCase() === name.toLowerCase()))
+      if (existingUser) {
+        return send(response, 200, { staff: publicUser(existingUser) }, origin)
       }
-      const user = { id: randomUUID(), name, role: 'staff', passwordHash: hashPassword(password), createdAt: now() }
+      if (!name || password.length < 8) return send(response, 400, { error: 'Enter a staff name and a password of at least 8 characters.' }, origin)
+      const user = { id: body.id && typeof body.id === 'string' ? cleanText(body.id, 100) : randomUUID(), name, role: 'staff', passwordHash: hashPassword(password), createdAt: now() }
       data.users.push(user)
       writeData(data)
       return send(response, 201, { staff: publicUser(user) }, origin)
@@ -352,8 +581,121 @@ export function createLocalApiServer(options = {}) {
       if (index < 0) return send(response, 404, { error: 'Staff member not found.' }, origin)
       const [removed] = data.users.splice(index, 1)
       for (const [token, session] of sessions) if (session.userId === removed.id) sessions.delete(token)
+      saveSessionsToDisk()
       writeData(data)
       return send(response, 204, {}, origin)
+    }
+    if (request.method === 'POST' && path === '/api/sync') {
+      if (!manager && !staff) return send(response, 401, { error: 'Authentication required for synchronization.' }, origin)
+      const body = await jsonBody(request)
+      const mutations = Array.isArray(body.mutations) ? body.mutations : []
+      const data = readData()
+
+      for (const mutation of mutations) {
+        try {
+          if (manager) {
+            if (mutation.type === 'create_project' && mutation.project) {
+              const p = mutation.project
+              const idx = data.projects.findIndex((item) => item.id === p.id)
+              if (idx >= 0) {
+                data.projects[idx] = { ...data.projects[idx], ...safePatch(p), updatedAt: now() }
+              } else {
+                data.projects.unshift(projectShape(p))
+              }
+            } else if (mutation.type === 'update_project' && mutation.projectId) {
+              const idx = data.projects.findIndex((item) => item.id === mutation.projectId)
+              if (idx >= 0) {
+                data.projects[idx] = { ...data.projects[idx], ...safePatch(mutation.change || {}), updatedAt: now() }
+              }
+            } else if (mutation.type === 'delete_project' && mutation.projectId) {
+              const idx = data.projects.findIndex((item) => item.id === mutation.projectId)
+              if (idx >= 0) data.projects.splice(idx, 1)
+            } else if (mutation.type === 'create_staff' && mutation.staff) {
+              const s = mutation.staff
+              if (!data.users.some((u) => u.role === 'staff' && (u.id === s.id || u.name.toLowerCase() === String(s.name || '').toLowerCase()))) {
+                if (s.name && String(s.password || '').length >= 8) {
+                  data.users.push({
+                    id: s.id || randomUUID(),
+                    name: cleanText(s.name, 100),
+                    role: 'staff',
+                    passwordHash: hashPassword(s.password),
+                    createdAt: now()
+                  })
+                }
+              }
+            } else if (mutation.type === 'delete_staff' && mutation.staffId) {
+              const idx = data.users.findIndex((u) => u.id === mutation.staffId && u.role === 'staff')
+              if (idx >= 0) {
+                const [removed] = data.users.splice(idx, 1)
+                for (const [token, session] of sessions) if (session.userId === removed.id) sessions.delete(token)
+                saveSessionsToDisk()
+              }
+            }
+          }
+          if (mutation.type === 'save_submissions' && mutation.projectId && Array.isArray(mutation.items)) {
+            const project = data.projects.find((p) => p.id === mutation.projectId)
+            if (project) {
+              const mutationStaff = staff || (mutation.staffId ? data.users.find((u) => u.id === mutation.staffId) : manager)
+              if (mutationStaff) {
+                const mutationId = cleanText(mutation.mutationId, 120)
+                const already = mutationId && (project.syncMutations || []).find((m) => m.id === mutationId)
+                if (!already) {
+                  const submissions = mutation.items.map((item) => staffSubmission(item, mutationStaff))
+                  project.staffDrafts = [...(project.staffDrafts || []), ...submissions]
+                  project.activityLog = [...(project.activityLog || []), {
+                    id: randomUUID(),
+                    actorId: mutationStaff.id,
+                    actorName: mutationStaff.name,
+                    action: 'Saved ' + submissions.length + ' field cart item' + (submissions.length === 1 ? '' : 's'),
+                    detail: submissions.map((e) => e.area + ' / ' + e.product).join(', '),
+                    createdAt: submissions[0]?.createdAt || now()
+                  }]
+                  if (mutationId) {
+                    project.syncMutations = [
+                      ...(project.syncMutations || []),
+                      { id: mutationId, staffId: mutationStaff.id, submissionIds: submissions.map((s) => s.id), createdAt: now() }
+                    ].slice(-500)
+                  }
+                  project.updatedAt = now()
+                }
+              }
+            }
+          }
+          if (mutation.type === 'delete_submission' && mutation.projectId && mutation.submissionId) {
+            const project = data.projects.find((p) => p.id === mutation.projectId)
+            if (project) {
+              const subId = String(mutation.submissionId).replace(/^staff-/, '')
+              project.staffDrafts = (project.staffDrafts || []).filter((s) => {
+                const sid = String(s.id || s.rawId || s.localId || '').replace(/^staff-/, '')
+                return sid !== subId
+              })
+              if (project.syncMutations) {
+                project.syncMutations = project.syncMutations.map((m) => ({
+                  ...m,
+                  submissionIds: (m.submissionIds || []).filter((id) => String(id).replace(/^staff-/, '') !== subId)
+                })).filter((m) => (m.submissionIds || []).length > 0)
+              }
+              project.updatedAt = now()
+            }
+          }
+        } catch (err) {
+          console.error('Sync mutation failed:', err)
+        }
+      }
+      writeData(data)
+
+      if (manager) {
+        return send(response, 200, {
+          projects: data.projects,
+          staff: data.users.filter((item) => item.role === 'staff').map(publicUser),
+          syncedAt: now()
+        }, origin)
+      } else {
+        return send(response, 200, {
+          projects: data.projects.map((p) => projectForStaff(p, staff)),
+          syncedAt: now()
+        }, origin)
+      }
     }
     if (request.method === 'GET' && path === '/api/staff/projects') {
       if (!staff) return send(response, 401, { error: 'Staff authentication is required.' }, origin)
@@ -416,6 +758,37 @@ export function createLocalApiServer(options = {}) {
       project.updatedAt = now()
       writeData(data)
       return send(response, 201, { draft }, origin)
+    }
+    const subDeleteMatch = path.match(/^\/api\/(?:staff\/)?projects\/([^/]+)\/(?:submissions|drafts)\/([^/]+)$/)
+    if (request.method === 'DELETE' && subDeleteMatch) {
+      if (!staff && !manager) return send(response, 401, { error: 'Authentication is required.' }, origin)
+      const data = readData()
+      const project = data.projects.find((item) => item.id === subDeleteMatch[1])
+      if (!project) return send(response, 404, { error: 'Project not found.' }, origin)
+      const subId = decodeURIComponent(subDeleteMatch[2]).replace(/^staff-/, '')
+      const prevCount = (project.staffDrafts || []).length
+      project.staffDrafts = (project.staffDrafts || []).filter((s) => {
+        const sid = String(s.id || s.rawId || s.localId || '').replace(/^staff-/, '')
+        return sid !== subId
+      })
+      if (project.syncMutations) {
+        project.syncMutations = project.syncMutations.map((m) => ({
+          ...m,
+          submissionIds: (m.submissionIds || []).filter((id) => String(id).replace(/^staff-/, '') !== subId)
+        })).filter((m) => (m.submissionIds || []).length > 0)
+      }
+      const actor = staff || manager
+      project.activityLog = [...(project.activityLog || []), {
+        id: randomUUID(),
+        actorId: actor.id,
+        actorName: actor.name,
+        action: 'Deleted field submission',
+        detail: `Submission ID ${subId}`,
+        createdAt: now()
+      }]
+      project.updatedAt = now()
+      writeData(data)
+      return send(response, 200, { success: true, deleted: prevCount !== project.staffDrafts.length }, origin)
     }
     return send(response, 404, { error: 'Route not found.' }, origin)
   } catch (error) {

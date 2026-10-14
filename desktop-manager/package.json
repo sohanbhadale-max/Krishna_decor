@@ -33,7 +33,7 @@
         "to": "api",
         "filter": [
           "**/*",
-          "!data/**",
+          "!data/backups/**",
           "!node_modules/**"
         ]
       },
