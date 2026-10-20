@@ -410,7 +410,7 @@ async function handle(request) {
   if (request.method === 'POST' && path === '/api/auth/login') {
     const body = await jsonBody(request)
     const role = body.role === 'staff' ? 'staff' : 'manager'
-    const identifier = cleanText(body.name || body.email || '', 100)
+    const identifier = cleanText(body.name || body.email || body.username || '', 100)
     const password = String(body.password || '')
     const users = await sql`SELECT id, name, role, password_hash, created_at FROM kd_users
       WHERE role = ${role} AND (lower(name) = lower(${identifier}) OR lower(name) = lower(${identifier.split('@')[0]})) LIMIT 1`

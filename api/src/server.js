@@ -581,7 +581,7 @@ export function createLocalApiServer(options = {}) {
     if (request.method === 'POST' && path === '/api/auth/login') {
       const body = await jsonBody(request)
       const role = body.role === 'staff' ? 'staff' : 'manager'
-      const rawIdentifier = cleanText(body.name || body.email || '', 100).toLowerCase()
+      const rawIdentifier = cleanText(body.name || body.email || body.username || '', 100).toLowerCase()
       const usernamePart = rawIdentifier.split('@')[0]
       const password = String(body.password || '')
       const user = readData().users.find((item) => item.role === role && (
