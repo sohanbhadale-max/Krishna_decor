@@ -3,7 +3,9 @@ import assert from 'assert'
 
 const fullCode = fs.readFileSync('manager-app/src/main.jsx', 'utf8')
 const lines = fullCode.split('\n')
-const targetSection = lines.slice(11, 337).join('\n')
+const startIdx = lines.findIndex((l) => l.startsWith('const AREAS'))
+const endIdx = lines.findIndex((l) => l.startsWith('const SESSION_KEY'))
+const targetSection = lines.slice(startIdx > 0 ? startIdx : 11, endIdx > 0 ? endIdx : 585).join('\n')
 
 const setupCode = `
 ${targetSection}
@@ -54,7 +56,7 @@ assert.strictEqual(findProductDef('Eylet main curtain').formula, 'eyelet')
 assert.strictEqual(findProductDef('Eyelet Main curtains').formula, 'eyelet')
 assert.strictEqual(findProductDef('Ripple main curtain').formula, 'ripple')
 assert.strictEqual(findProductDef('Ripple sheer').formula, 'ripple')
-assert.strictEqual(findProductDef('Ripple stitching').formula, 'standard')
+assert.strictEqual(findProductDef('Ripple stitching').formula, 'stitching-ripple')
 
 // Test 7: unitLabel
 assert.strictEqual(unitLabel('Eylet main curtain'), 'm')

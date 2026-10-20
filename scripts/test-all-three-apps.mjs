@@ -47,11 +47,20 @@ async function run() {
   const roamingDataDir = join(process.env.APPDATA, 'krishna-decor-manager-desktop', 'data')
   console.log('Testing against active desktop database directory:', roamingDataDir)
 
-  const server = await startLocalApiServer({
-    port: 8788,
-    dataDirectory: roamingDataDir
-  })
-  console.log('Local API Server started on port 8788.\n')
+  let server = null
+  try {
+    server = await startLocalApiServer({
+      port: 8788,
+      dataDirectory: roamingDataDir
+    })
+    console.log('Local API Server started on port 8788.\n')
+  } catch (err) {
+    if (err.code === 'EADDRINUSE') {
+      console.log('API Server already active on port 8788, testing against running server.\n')
+    } else {
+      throw err
+    }
+  }
 
   try {
     // -------------------------------------------------------------
@@ -84,25 +93,34 @@ async function run() {
     // Test 2: Correct manager name with wrong password cannot login
     const wrongPass = await request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ name: 'sohan', password: 'wrongpassword', role: 'manager' })
+      body: JSON.stringify({ name: 'Dinesh', password: 'wrongpassword', role: 'manager' })
     })
     assert(wrongPass.status === 401 && wrongPass.data.error === 'User name or password is incorrect.', 'Manager with wrong password cannot log in (401 Unauthorized)')
 
     // Test 3: Correct manager credentials log in successfully
     const managerLogin = await request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ name: 'sohan', password: '12345678', role: 'manager' })
+      body: JSON.stringify({ name: 'Dinesh', password: 'KDecor2026', role: 'manager' })
     })
-    assert(managerLogin.ok && managerLogin.data.token && managerLogin.data.user.role === 'manager', 'Manager (sohan) logs in successfully with valid session token')
+    assert(managerLogin.ok && managerLogin.data.token && managerLogin.data.user.role === 'manager', 'Manager (Dinesh) logs in successfully with valid session token')
     const managerToken = managerLogin.data.token
     const managerHeaders = { Authorization: 'Bearer ' + managerToken }
+
+    // Ensure staff account exists for authentication test
+    const testAuthStaffName = 'TestStaff_Auth_' + Date.now().toString(36)
+    const testAuthStaffId = 'staff-' + Date.now().toString(36)
+    await request('/staff', {
+      method: 'POST',
+      headers: managerHeaders,
+      body: JSON.stringify({ id: testAuthStaffId, name: testAuthStaffName, password: 'Password123!' })
+    })
 
     // Test 4: Correct staff credentials log in successfully
     const staffLogin = await request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ name: 'isra', password: '12345678', role: 'staff' })
+      body: JSON.stringify({ name: testAuthStaffName, password: 'Password123!', role: 'staff' })
     })
-    assert(staffLogin.ok && staffLogin.data.token && staffLogin.data.user.role === 'staff', 'Staff (isra) logs in successfully with valid staff token')
+    assert(staffLogin.ok && staffLogin.data.token && staffLogin.data.user.role === 'staff', `Staff (${testAuthStaffName}) logs in successfully with valid staff token`)
     const staffToken = staffLogin.data.token
     const staffHeaders = { Authorization: 'Bearer ' + staffToken }
 
@@ -374,14 +392,17 @@ async function run() {
     const retestManager = await request('/projects', { method: 'GET', headers: managerHeaders })
     assert(retestManager.ok, 'Manager session token remains 100% active and authenticated (no unexpected logout)')
 
-    // Clean up test project
+    // Clean up test project and staff
     await request('/projects/' + testProjectId, { method: 'DELETE', headers: managerHeaders })
     await request('/projects/' + syncBatchId, { method: 'DELETE', headers: managerHeaders })
-    console.log('Test projects cleaned up.')
+    await request('/staff/' + testAuthStaffId, { method: 'DELETE', headers: managerHeaders })
+    console.log('Test projects and test staff cleaned up.')
 
   } finally {
-    await new Promise((resolve) => server.close(resolve))
-    console.log('\nLocal API Server stopped.')
+    if (server) {
+      await new Promise((resolve) => server.close(resolve))
+      console.log('\nLocal API Server stopped.')
+    }
   }
 
   console.log('\n===============================================================')

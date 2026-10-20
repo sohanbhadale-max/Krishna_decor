@@ -7,6 +7,10 @@ dist/
 */dist/
 release/
 desktop-manager/release/
+dist-transfers/
+*.exe
+*.apk
+*.zip
 
 # Environment files
 .env

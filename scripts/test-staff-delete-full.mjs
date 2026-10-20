@@ -54,7 +54,7 @@ async function run() {
     // 1. Authenticate manager
     const managerLogin = await request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ name: 'sohan', email: 'sohanbhadale1234@gmail.com', password: '12345678', role: 'manager' })
+      body: JSON.stringify({ name: 'Dinesh', email: 'dinesh@krishnadecor.local', password: 'KDecor2026', role: 'manager' })
     })
     assert(managerLogin.ok && managerLogin.data.token, 'Manager signed in')
     const managerToken = managerLogin.data.token

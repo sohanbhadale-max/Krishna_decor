@@ -1,8 +1,17 @@
 import { Capacitor } from '@capacitor/core'
 
 const API_SETTING_KEY = 'krishna-decor-manager-api-url'
-const builtApiUrl = String(import.meta.env.VITE_API_URL || '').trim()
+const builtApiUrl = String(
+  (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_URL : '') ||
+  (typeof process !== 'undefined' && process.env ? process.env.VITE_API_URL : '') ||
+  ''
+).trim()
+export const DEFAULT_LOCAL_API_URL = 'http://127.0.0.1:8788/api'
 export const DEFAULT_CLOUD_API_URL = 'https://krishna-decor-api.onrender.com/api'
+
+export function isDesktopApp() {
+  return typeof window !== 'undefined' && Boolean(window.krishnaHub)
+}
 
 function normalise(value) {
   const raw = String(value || '').trim()
@@ -37,19 +46,16 @@ function isLocalOrLanUrl(urlStr) {
 export function apiBase() {
   if (builtApiUrl) return normalise(builtApiUrl)
 
-  // In Windows Desktop app (Electron), use configured cloudUrl from krishnaHub if present
-  if (typeof window !== 'undefined' && window.krishnaHub && window.krishnaHub.cloudUrl) {
-    try {
-      const normHub = normalise(window.krishnaHub.cloudUrl)
-      if (normHub && !isLocalOrLanUrl(normHub)) return normHub
-    } catch {}
+  // In Windows Desktop app (Electron), ALWAYS use local hub for instant zero-delay operations!
+  if (isDesktopApp()) {
+    return DEFAULT_LOCAL_API_URL
   }
 
   const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(API_SETTING_KEY) : null
   if (stored) {
     try {
-      // Clear obsolete localhost / local LAN IPs from prior versions
-      if (isLocalOrLanUrl(stored)) {
+      // Clear obsolete localhost / local LAN IPs from prior mobile versions
+      if (isNative() && isLocalOrLanUrl(stored)) {
         localStorage.removeItem(API_SETTING_KEY)
       } else {
         const norm = normalise(stored)
@@ -58,7 +64,24 @@ export function apiBase() {
     } catch {}
   }
 
-  // All 3 apps (Android Manager, Android Staff, Windows Desktop) default to the 24/7 Cloud backend
+  // All non-desktop apps (Android Manager / Staff) default to 24/7 Cloud backend
+  return DEFAULT_CLOUD_API_URL
+}
+
+export function cloudApiBase() {
+  if (typeof window !== 'undefined' && window.krishnaHub && window.krishnaHub.cloudUrl) {
+    try {
+      const normHub = normalise(window.krishnaHub.cloudUrl)
+      if (normHub) return normHub
+    } catch {}
+  }
+  const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('krishna-decor-cloud-api-url') : null
+  if (stored) {
+    try {
+      const norm = normalise(stored)
+      if (norm) return norm
+    } catch {}
+  }
   return DEFAULT_CLOUD_API_URL
 }
 

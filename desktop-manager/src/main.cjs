@@ -3,6 +3,7 @@ const { spawn } = require('node:child_process')
 const { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, readdirSync } = require('node:fs')
 const { dirname, join, resolve } = require('node:path')
 const { pathToFileURL } = require('node:url')
+const { BackupService, generateDocumentHtml, sanitizeName } = require('./backup-service.cjs')
 
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
@@ -37,13 +38,36 @@ function readConfig() {
   try {
     return JSON.parse(readFileSync(configPath(), 'utf8'))
   } catch {
-    return { publicApiUrl: '', encryptedTunnelToken: '', startAtLogin: true }
+    return { publicApiUrl: '', encryptedTunnelToken: '', startAtLogin: true, backupDirectory: '' }
   }
 }
 
 function writeConfig(config) {
   mkdirSync(dirname(configPath()), { recursive: true })
   writeFileSync(configPath(), JSON.stringify(config, null, 2) + '\n', { mode: 0o600 })
+}
+
+const backupService = new BackupService({ readConfigFn: readConfig, writeConfigFn: writeConfig })
+
+function loadLocalProjects() {
+  const dataFolder = userDataPath('data')
+  const dataFile = join(dataFolder, 'krishna-decor.json')
+  if (existsSync(dataFile)) {
+    try {
+      const parsed = JSON.parse(readFileSync(dataFile, 'utf8'))
+      if (parsed && Array.isArray(parsed.projects)) return parsed.projects
+    } catch {}
+  }
+  const localTemplate = resolve(__dirname, '../../api/data/krishna-decor.json')
+  const packagedTemplate = join(process.resourcesPath || '', 'api', 'data', 'krishna-decor.json')
+  const templatePath = existsSync(localTemplate) ? localTemplate : (existsSync(packagedTemplate) ? packagedTemplate : null)
+  if (templatePath) {
+    try {
+      const tmpl = JSON.parse(readFileSync(templatePath, 'utf8'))
+      if (tmpl && Array.isArray(tmpl.projects)) return tmpl.projects
+    } catch {}
+  }
+  return []
 }
 
 function tunnelToken(config = readConfig()) {
@@ -146,10 +170,14 @@ function hubStatus() {
       backupFilesCount = readdirSync(backupFolder).filter((f) => f.endsWith('.json')).length
     }
   } catch {}
+  const backupStats = backupService.getStats()
   return {
     cloudApiUrl: config.cloudApiUrl || 'https://krishna-decor-api.onrender.com/api',
     localBackupActive: true,
     dataFolder,
+    backupDirectory: backupStats.backupDirectory,
+    backupConfigured: backupStats.configured,
+    backupStats,
     hasBackup: existsSync(join(dataFolder, 'krishna-decor.json')),
     lastBackupTime,
     backupCount: backupFilesCount,
@@ -181,7 +209,12 @@ function createMainWindow() {
     }
   })
   const appRoot = app.isPackaged ? join(process.resourcesPath, 'manager-app') : resolve(__dirname, '../../manager-app/dist')
-  mainWindow.loadFile(join(appRoot, 'index.html'))
+  mainWindow.loadFile(join(appRoot, 'index.html')).catch((err) => {
+    console.error('Failed to load mainWindow:', err)
+  })
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error('Failed to load mainWindow:', errorCode, errorDescription, validatedURL)
+  })
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }
@@ -197,16 +230,24 @@ function createMainWindow() {
 }
 
 function createTray() {
-  const icon = nativeImage.createFromDataURL('data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="6" fill="#173e73"/><path d="M10 7h4v8l6-8h5l-7 9 7 9h-5l-6-8v8h-4z" fill="white"/></svg>'))
-  tray = new Tray(icon)
-  tray.setToolTip('Krishna Decor Windows Hub')
-  tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Show Manager', click: showMainWindow },
-    { label: 'Windows Hub Sync Settings', click: openSettings },
-    { type: 'separator' },
-    { label: 'Quit Krishna Decor', click: () => { quitting = true; app.quit() } }
-  ]))
-  tray.on('double-click', showMainWindow)
+  try {
+    const pngPath = join(__dirname, 'tray-icon.png')
+    const icon = existsSync(pngPath)
+      ? nativeImage.createFromPath(pngPath)
+      : nativeImage.createFromDataURL('data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" rx="6" fill="#251b14"/><path d="M10 7h4v8l6-8h5l-7 9 7 9h-5l-6-8v8h-4z" fill="white"/></svg>'))
+    tray = new Tray(icon)
+    tray.setToolTip('Krishna Decor Windows Hub')
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: 'Show Manager', click: showMainWindow },
+      { label: 'Open backup_krishna_decor Folder', click: () => backupService.openFolder().catch(() => {}) },
+      { label: 'Windows Hub Sync Settings', click: openSettings },
+      { type: 'separator' },
+      { label: 'Quit Krishna Decor', click: () => { quitting = true; app.quit() } }
+    ]))
+    tray.on('double-click', showMainWindow)
+  } catch (trayErr) {
+    console.error('Tray creation failed:', trayErr)
+  }
 }
 
 function openSettings() {
@@ -237,8 +278,9 @@ function installMenu() {
       label: 'Krishna Decor',
       submenu: [
         { label: 'Show Manager', click: showMainWindow },
+        { label: 'Open backup_krishna_decor Folder', click: () => backupService.openFolder().catch(() => {}) },
         { label: 'Windows Hub Sync Settings', click: openSettings },
-        { label: 'Open Local Data Folder', click: () => shell.openPath(userDataPath('data')) },
+        { label: 'Open AppData Folder', click: () => shell.openPath(userDataPath('data')) },
         { type: 'separator' },
         { label: 'Quit', click: () => { quitting = true; app.quit() } }
       ]
@@ -280,7 +322,7 @@ ipcMain.handle('hub:test-cloud', async (_event, targetUrl) => {
   const urlToTest = (targetUrl || 'https://krishna-decor-api.onrender.com/api').replace(/\/$/, '') + '/health'
   const startTime = Date.now()
   try {
-    const res = await fetch(urlToTest, { signal: AbortSignal.timeout(9000) })
+    const res = await fetch(urlToTest, { signal: AbortSignal.timeout(35000) })
     const data = await res.json()
     const latency = Date.now() - startTime
     return { ok: res.ok && data.ok, latency, data }
@@ -296,7 +338,7 @@ ipcMain.handle('hub:sync-cloud', async () => {
   const dataFile = join(dataFolder, 'krishna-decor.json')
 
   try {
-    const healthRes = await fetch(cloudUrl + '/health', { signal: AbortSignal.timeout(8000) })
+    const healthRes = await fetch(cloudUrl + '/health', { signal: AbortSignal.timeout(35000) })
     if (!healthRes.ok) throw new Error('Cloud health check failed.')
   } catch (error) {
     return { ok: false, error: 'Could not connect to 24/7 cloud: ' + (error.message || 'offline') }
@@ -360,29 +402,146 @@ ipcMain.handle('hub:import-backup', async () => {
   }
   writeFileSync(destination, JSON.stringify(imported, null, 2) + '\n', { mode: 0o600 })
   lastBackupTime = new Date().toISOString()
+  try {
+    await backupService.syncAllProjects(imported.projects || [])
+  } catch (err) {
+    console.error('Failed to sync imported backup to backup_krishna_decor:', err.message)
+  }
   return { imported: true }
+})
+
+ipcMain.handle('hub:get-backup-dir', () => {
+  return backupService.getStats()
+})
+
+ipcMain.handle('hub:select-backup-dir', async () => {
+  const targetWin = settingsWindow || mainWindow
+  const result = await backupService.promptSelectBackupDirectory(targetWin)
+  if (!result.canceled && result.path) {
+    const projects = loadLocalProjects()
+    await backupService.syncAllProjects(projects)
+    broadcastStatus()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('hub:backup-dir-changed', {
+        path: result.path,
+        configured: true
+      })
+    }
+  }
+  return {
+    ...backupService.getStats(),
+    canceled: Boolean(result.canceled)
+  }
+})
+
+ipcMain.handle('hub:open-backup-dir', async () => {
+  return backupService.openFolder()
+})
+
+ipcMain.handle('hub:open-project-folder', async (_event, projectName, subfolder) => {
+  return backupService.openFolder(projectName, subfolder)
+})
+
+ipcMain.handle('hub:sync-projects-backup', async (_event, projects) => {
+  const list = Array.isArray(projects) ? projects : loadLocalProjects()
+  const syncResult = await backupService.syncAllProjects(list)
+  broadcastStatus()
+  return syncResult
+})
+
+ipcMain.handle('hub:save-document-pdf', async (_event, { project, quote, isInvoice, documentNumber } = {}) => {
+  if (!project || !quote) return { success: false, error: 'Project and quote are required.' }
+  try {
+    const isInv = Boolean(isInvoice)
+    const docType = isInv ? 'Tax-Invoice' : 'Quotation'
+    const docNum = documentNumber || quote.id || 'Doc'
+    const defaultFilename = `${docType}-${sanitizeName(project.name || 'Project')}-${sanitizeName(docNum)}.pdf`
+
+    const targetWin = mainWindow || BrowserWindow.getFocusedWindow()
+    const { canceled, filePath } = await dialog.showSaveDialog(targetWin || undefined, {
+      title: `Save ${isInv ? 'Invoice' : 'Quotation'} PDF`,
+      defaultPath: defaultFilename,
+      filters: [{ name: 'PDF Documents', extensions: ['pdf'] }]
+    })
+
+    if (canceled || !filePath) {
+      return { success: false, canceled: true }
+    }
+
+    const htmlContent = generateDocumentHtml(project, quote, isInv, docNum)
+    await backupService.renderHtmlToPdf(htmlContent, filePath)
+    return { success: true, filePath }
+  } catch (err) {
+    console.error('Failed to save document PDF:', err)
+    return { success: false, error: err.message || 'Failed to save PDF' }
+  }
 })
 
 const BASELINE_USERS = [
   {
     id: '3c8d7d36-7fa6-4b1c-8526-179be4456a93',
-    name: 'sohan',
-    email: 'sohanbhadale1234@gmail.com',
+    name: 'Dinesh',
+    email: 'dinesh@krishnadecor.local',
     role: 'manager',
-    passwordHash: 'ca1e12c2e12072a2f5e68b801dee0e0e:19267edcfa42e320ee365168a67f67e5f27ecdf7528b805460e0dc687b25a83141080ee917040f8f0a5cb6a20d7501ec02cfeefbda8b6a6d8efee81d5dc1e573',
+    passwordHash: '76fc7169045d1c6fd5b43771fc9bb3f6:0950337f94b27ba370851a6aa5f9d45f2f023327d29706279ebdb2668f482a4b73f4e37779e7c5a4bdd902b51f221ed95d9b57569ccc9df8465be8155064af6a',
     createdAt: '2026-10-07T16:36:39.226Z'
-  },
-  {
-    id: '137a7965-b105-40f7-9c37-d6e2e984f8d1',
-    name: 'isra',
-    email: 'isra@krishnadecor.local',
-    role: 'staff',
-    passwordHash: '0b585636702c3e6d4b5eccaf3a35ed75:fd47484b8ddfc6ad2f2f32875035bbec9cae3339e7dd532a4b3aa448a9a2bcf3058f02320a4545f4251e9970f27df9052ff12ecb820d965a435267ac3a409cdb',
-    createdAt: '2026-10-14T07:32:32.442Z'
   }
 ]
 
 let lastBackupTime = null
+
+ipcMain.handle('hub:delete-staff', async (_event, payload = {}) => {
+  const dataFolder = userDataPath('data')
+  const dataFile = join(dataFolder, 'krishna-decor.json')
+  const targetId = String(payload.id || '').trim().toLowerCase()
+  const targetName = String(payload.name || '').trim().toLowerCase()
+  if (!targetId && !targetName) return { success: true }
+
+  const filterUsers = (users) => {
+    if (!Array.isArray(users)) return []
+    return users.filter((u) => {
+      if (u.role !== 'staff') return true
+      const uId = String(u.id || '').trim().toLowerCase()
+      const uName = String(u.name || '').trim().toLowerCase()
+      if (targetId && uId === targetId) return false
+      if (targetName && uName === targetName) return false
+      return true
+    })
+  }
+
+  if (existsSync(dataFile)) {
+    try {
+      const parsed = JSON.parse(readFileSync(dataFile, 'utf8'))
+      if (parsed && Array.isArray(parsed.users)) {
+        parsed.users = filterUsers(parsed.users)
+        writeFileSync(dataFile, JSON.stringify(parsed, null, 2) + '\n', 'utf8')
+      }
+    } catch (err) {
+      console.error('Failed to delete staff member from desktop db:', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  // Also permanently delete from any daily backups
+  const backupFolder = join(dataFolder, 'backups')
+  if (existsSync(backupFolder)) {
+    try {
+      const files = readdirSync(backupFolder).filter((f) => f.endsWith('.json'))
+      for (const file of files) {
+        const filePath = join(backupFolder, file)
+        try {
+          const bData = JSON.parse(readFileSync(filePath, 'utf8'))
+          if (bData && Array.isArray(bData.users)) {
+            bData.users = filterUsers(bData.users)
+            writeFileSync(filePath, JSON.stringify(bData, null, 2) + '\n', 'utf8')
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
+  return { success: true }
+})
 
 ipcMain.handle('hub:save-backup', async (_event, payload) => {
   if (!payload || typeof payload !== 'object') return { success: false }
@@ -433,14 +592,39 @@ ipcMain.handle('hub:save-backup', async (_event, payload) => {
     }
   }
 
-  // Ensure both manager and staff are present with passwordHash
+  usersToSave = usersToSave.map((u) => {
+    if (u.role === 'manager') {
+      if (u.name?.toLowerCase() !== 'dinesh' || u.passwordHash !== BASELINE_USERS[0].passwordHash) {
+        return { ...u, name: 'Dinesh', email: 'dinesh@krishnadecor.local', passwordHash: BASELINE_USERS[0].passwordHash }
+      }
+      return u
+    }
+    return u
+  })
+
+  // If payload provided the active staff list, filter out deleted staff members
+  if (Array.isArray(payload.staff)) {
+    const allowedStaffIds = new Set(payload.staff.map((s) => String(s.id || '').trim().toLowerCase()))
+    const allowedStaffNames = new Set(payload.staff.map((s) => String(s.name || '').trim().toLowerCase()))
+    usersToSave = usersToSave.filter((u) => {
+      if (u.role !== 'staff') return true
+      return allowedStaffIds.has(String(u.id || '').trim().toLowerCase()) || allowedStaffNames.has(String(u.name || '').trim().toLowerCase())
+    })
+  }
+
+  // If payload provided explicitly deleted staff names/IDs, remove them unconditionally
+  if (Array.isArray(payload.deletedStaff)) {
+    const deletedSet = new Set(payload.deletedStaff.map((s) => String(s || '').trim().toLowerCase()))
+    usersToSave = usersToSave.filter((u) => {
+      if (u.role !== 'staff') return true
+      return !deletedSet.has(String(u.id || '').trim().toLowerCase()) && !deletedSet.has(String(u.name || '').trim().toLowerCase())
+    })
+  }
+
+  // Ensure manager is present with passwordHash
   if (!usersToSave.some((u) => u.role === 'manager' && u.passwordHash)) {
     const mgr = templateUsers.find((t) => t.role === 'manager' && t.passwordHash) || BASELINE_USERS[0]
     usersToSave.unshift(mgr)
-  }
-  if (!usersToSave.some((u) => u.role === 'staff' && u.passwordHash)) {
-    const stf = templateUsers.find((t) => t.role === 'staff' && t.passwordHash) || BASELINE_USERS[1]
-    usersToSave.push(stf)
   }
 
   const projectsToSave = (Array.isArray(payload.projects) && payload.projects.length > 0)
@@ -460,6 +644,14 @@ ipcMain.handle('hub:save-backup', async (_event, payload) => {
   const dailyBackup = join(backupFolder, 'krishna-decor-' + todayStr + '.json')
   writeFileSync(dailyBackup, JSON.stringify(dataToSave, null, 2) + '\n', { mode: 0o600 })
   lastBackupTime = new Date().toISOString()
+
+  // Automatically mirror all project drafts and invoices into backup_krishna_decor in background without blocking UI
+  setImmediate(() => {
+    backupService.syncAllProjects(projectsToSave).catch((syncErr) => {
+      console.error('Failed to sync projects to backup_krishna_decor:', syncErr.message)
+    })
+  })
+
   return { success: true, path: destination, lastBackupTime }
 })
 
@@ -485,6 +677,49 @@ app.whenReady().then(async () => {
   createTray()
   createMainWindow()
   if (tunnelToken(config)) startTunnel()
+
+  // Prompt the user to select location for backup_krishna_decor on first launch if not configured
+  if (!backupService.getBackupDirectory()) {
+    setTimeout(async () => {
+      try {
+        if (!mainWindow || mainWindow.isDestroyed()) return
+        const choice = await dialog.showMessageBox(mainWindow, {
+          type: 'question',
+          title: 'Krishna Decor - Choose Backup Folder Location',
+          message: 'Welcome to Krishna Decor Manager!\n\nPlease select a location on your system where the main folder "backup_krishna_decor" will be created.\n\nInside this folder, a separate folder for each project will be automatically created with:\n• "drafts" subfolder for all quotation drafts\n• "invoice" subfolder for the project invoice',
+          buttons: ['Choose Location Now', 'Remind Me Later'],
+          defaultId: 0,
+          cancelId: 1
+        })
+        if (choice.response === 0) {
+          const res = await backupService.promptSelectBackupDirectory(mainWindow)
+          if (!res.canceled && res.path) {
+            const projects = loadLocalProjects()
+            await backupService.syncAllProjects(projects)
+            broadcastStatus()
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('hub:backup-dir-changed', {
+                path: res.path,
+                configured: true
+              })
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Initial backup folder prompt error:', err)
+      }
+    }, 1200)
+  } else {
+    // If already configured, ensure all existing projects are backed up
+    setTimeout(async () => {
+      try {
+        const projects = loadLocalProjects()
+        if (projects.length > 0) {
+          await backupService.syncAllProjects(projects)
+        }
+      } catch {}
+    }, 2500)
+  }
 })
 
 app.on('window-all-closed', () => {

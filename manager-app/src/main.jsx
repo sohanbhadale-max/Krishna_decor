@@ -3,12 +3,14 @@ import { createRoot } from 'react-dom/client'
 import {
   ArrowUpRight, Bell, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight,
   CircleDollarSign, Clock3, Copy, CreditCard, Download, Eye, FileText, FolderKanban,
-  GitMerge, ImageIcon, Layers, LayoutDashboard, MapPin, Menu, MoreHorizontal, Package, Plus,
-  Printer, Receipt, RefreshCw, Ruler, Search, Trash2, Upload, Users, LogOut, X,
-  Pencil
+  FolderOpen, HardDrive,
+  GitMerge, Layers, LayoutDashboard, MapPin, Menu, MoreHorizontal, Package, Plus,
+  Printer, Receipt, RefreshCw, Ruler, Search, Trash2, Users, LogOut, X,
+  Pencil, Phone, Mail
 } from 'lucide-react'
 import './styles.css'
-import { apiBase, apiUrl, canConfigureApiBase, clearApiBase, isApiConfigured, setApiBase } from './api-config.js'
+import documentBg from './assets/document-bg.jpg'
+import { apiBase, apiUrl, canConfigureApiBase, clearApiBase, isApiConfigured, setApiBase, cloudApiBase, isDesktopApp } from './api-config.js'
 
 const AREAS = [
   'Foyer', 'Living room', 'Dining', 'Pooja room', 'Bedroom 1', 'Bedroom 2', 'Bedroom 3',
@@ -24,99 +26,90 @@ const AREAS = [
   'Library', 'Study area'
 ]
 
-const CURTAIN_SYSTEMS = [
-  {
-    id: 'american',
-    name: 'American curtains',
-    formula: 'american',
-    products: [
-      ['American main curtain', 5, 'american'],
-      ['American sheer', 5, 'american'],
-      ['American lining', 5, 'american']
-    ]
-  },
-  {
-    id: 'valence',
-    name: 'Valence curtains',
-    formula: 'valance',
-    products: [
-      ['Valence main curtain', 5, 'valance'],
-      ['Valence sheer', 5, 'valance'],
-      ['Valence lining', 5, 'valance']
-    ]
-  },
-  {
-    id: 'eyelet',
-    name: 'Eylet curtains',
-    formula: 'eyelet',
-    products: [
-      ['Eylet main curtain', 5, 'eyelet'],
-      ['Eylet sheer', 5, 'eyelet'],
-      ['Eylet lining', 5, 'eyelet']
-    ]
-  },
-  {
-    id: 'ripple',
-    name: 'Ripple curtains',
-    formula: 'ripple',
-    products: [
-      ['Ripple main curtain', 5, 'ripple'],
-      ['Ripple sheer', 5, 'ripple'],
-      ['Ripple lining', 5, 'ripple']
-    ]
-  }
+// Individual curtain materials:
+// 1. Valence: renamed from Valence curtain, sheer and lining removed
+// 2. American: automated sheer and lining removed, all 3 as individual materials
+// 3. Eyelet & Ripple: automated sheer and lining removed, all 3 as individual materials
+const INDIVIDUAL_CURTAIN_PRODUCTS = [
+  ['American main curtain', 5, 'american'],
+  ['American sheer curtain', 5, 'american'],
+  ['American lining', 5, 'american'],
+  ['Eyelet main curtain', 5, 'eyelet'],
+  ['Eyelet sheer curtain', 5, 'eyelet'],
+  ['Eyelet lining', 5, 'eyelet'],
+  ['Ripple main curtain', 5, 'ripple'],
+  ['Ripple sheer curtain', 5, 'ripple'],
+  ['Ripple lining', 5, 'ripple'],
+  ['Valence', 5, 'valance']
 ]
+
+// Legacy bundle definitions kept empty so automated computation of sheer and lining is removed
+const CURTAIN_SYSTEMS = []
 
 const CLAMP_OPTIONS = ['Ceiling Clamps', 'Single wall clamp', 'Double wall clamp']
 
 const ALL_CURTAIN_COMPONENT_NAMES = new Set([
-  ...CURTAIN_SYSTEMS.flatMap((system) => system.products.map(([name]) => name)),
-  'American main curtains', 'American sheer curtains', 'American lining',
-  'Valence main curtains', 'Valence sheer curtains', 'Valence lining',
-  'Eyelet Main curtains', 'Eyelet sheer curtains', 'Eyelet lining',
-  'Eylet Main curtains', 'Eylet sheer curtains', 'Eylet lining',
-  'Ripple Main curtains', 'Ripple sheer curtain', 'Ripple lining'
+  ...INDIVIDUAL_CURTAIN_PRODUCTS.map(([name]) => name),
+  'American main curtains', 'American sheer', 'American sheer curtains', 'American lining',
+  'Valence main curtains', 'Valence main curtain', 'Valence curtains',
+  'Eyelet Main curtains', 'Eyelet sheer', 'Eyelet sheer curtains', 'Eyelet lining',
+  'Eylet Main curtains', 'Eylet main curtain', 'Eylet sheer', 'Eylet sheer curtains', 'Eylet lining',
+  'Ripple Main curtains', 'Ripple sheer', 'Ripple sheer curtain', 'Ripple lining'
 ])
 
 const MATERIAL_PRODUCTS = [
-  ...CURTAIN_SYSTEMS.flatMap((system) => system.products),
+  ...INDIVIDUAL_CURTAIN_PRODUCTS,
+  ['American sheer', 5, 'american'],
   ['American main curtains', 5, 'american'],
   ['American sheer curtains', 5, 'american'],
-  ['Valence main curtains', 5, 'valance'],
-  ['Valence sheer curtains', 5, 'valance'],
   ['Eyelet Main curtains', 5, 'eyelet'],
   ['Eyelet sheer curtains', 5, 'eyelet'],
-  ['Eyelet lining', 5, 'eyelet'],
+  ['Eylet main curtain', 5, 'eyelet'],
+  ['Eylet sheer curtain', 5, 'eyelet'],
+  ['Eylet sheer', 5, 'eyelet'],
+  ['Eylet lining', 5, 'eyelet'],
   ['Ripple Main curtains', 5, 'ripple'],
   ['Ripple sheer curtain', 5, 'ripple'],
-  ['Ripple lining', 5, 'ripple'],
-  ['Velance Fabric', 5, 'valance'],
-  ['American Stitching', 18], ['Velance stitching', 18], ['Roman blinds', 18, 'roman'],
-  ['Roller blinds', 18], ['Zebra blinds', 18], ['Wooden Venetian blinds', 18],
-  ['Eyelet stitching', 18], ['Ripple stitching', 18], ['Track', 18], ['Runners', 18],
-  ...CLAMP_OPTIONS.map((name) => [name, 18]), ['Hooks', 18], ['Installation', 18], ['Delivery', 18],
+  ['Ripple sheer', 5, 'ripple'],
+  ['Valence main curtain', 5, 'valance'],
+  ['Valence main curtains', 5, 'valance'],
+  ['American Stitching', 18, 'stitching-american'],
+  ['Valence Stitching', 18, 'stitching-valance'],
+  ['Velance stitching', 18, 'stitching-valance'],
+  ['Valance stitching', 18, 'stitching-valance'],
+  ['Roman blinds', 18, 'roman'],
+  ['Roller blinds', 18, 'blind-sqft'], ['Zebra blinds', 18, 'blind-sqft'], ['Wooden Venetian blinds', 18, 'blind-sqft'],
+  ['Eyelet Stitching', 18, 'stitching-eyelet'],
+  ['Eyelet stitching', 18, 'stitching-eyelet'],
+  ['Ripple Stitching', 18, 'stitching-ripple'],
+  ['Ripple stitching', 18, 'stitching-ripple'],
+  ['Tracks', 18, 'tracks'], ['Runners', 18, 'runners'],
+  ['Hooks', 18, 'hooks'],
+  ['Ceiling clamps', 18, 'ceiling-clamp'], ['Single wall clamps', 18, 'single-clamp'], ['Double wall clamps', 18, 'double-clamp'],
+  ...CLAMP_OPTIONS.map((name) => [name, 18, 'clamp']),
   ['Bed back fabric', 5], ['Bed border fabric', 5], ['Bed back making', 5], ['Soft board fabric', 5],
   ['Soft board making', 18], ['Seating fabric', 5], ['Seating making', 18], ['Pillow fabric', 5],
   ['Pillow', 18], ['Mattress', 18], ['Wallpaper rolls', 18], ['Wallpaper pasting', 18],
   ['Customised wallpaper', 18], ['Customised wallpaper pasting', 18], ['Carpet', 18],
-  ['Bed set', 18], ['Bedsheets', 18], ['Runner fabric', 5], ['Runner stitching', 18],
-  ['Vinyl blinds', 18], ['Monsoon blinds', 18], ['Matting', 18], ['Mat', 18],
+  ['Bed set', 18], ['Bedsheets', 18], ['Bed sheet', 18], ['Runner fabric', 5], ['Runner stitching', 18],
+  ['Vinyl blinds', 18], ['Monsoon blinds', 18, 'blind-sqft'], ['Matting', 18], ['Mat', 18],
   ['PVC Matting', 18], ['Rod', 18], ['Support', 18], ['End caps', 18], ['Shower curtain', 18]
 ].map(([name, gst, formula]) => ({ name, gst, formula: formula || 'standard' }))
 
 const PRODUCTS = [
-  ...CURTAIN_SYSTEMS.map((system) => ({ name: system.name, gst: 5, formula: system.formula, curtainSystem: system })),
+  ...INDIVIDUAL_CURTAIN_PRODUCTS.map(([name, gst, formula]) => ({ name, gst, formula })),
   ...MATERIAL_PRODUCTS.filter((product) =>
+    !INDIVIDUAL_CURTAIN_PRODUCTS.some(([name]) => name === product.name) &&
     !ALL_CURTAIN_COMPONENT_NAMES.has(product.name) &&
-    !CURTAIN_SYSTEMS.some((system) => system.name === product.name) &&
-    !['Track', 'Runners', 'Hooks', ...CLAMP_OPTIONS].includes(product.name)
+    !['Installation', 'Delivery'].includes(product.name) &&
+    !['Velance stitching', 'Valance stitching', 'Eyelet stitching', 'Ripple stitching'].includes(product.name)
   )
 ]
 
-const EDITABLE_MATERIAL_PRODUCTS = MATERIAL_PRODUCTS.filter((product) => !['Track', 'Runners', 'Hooks', ...CLAMP_OPTIONS].includes(product.name))
+const EDITABLE_MATERIAL_PRODUCTS = MATERIAL_PRODUCTS.filter((product) => !['Installation', 'Delivery'].includes(product.name))
 const EDITABLE_MODAL_PRODUCTS = Array.from(new Set([
   ...PRODUCTS.map((p) => p.name),
-  ...MATERIAL_PRODUCTS.filter((product) => !['Track', 'Runners', 'Hooks', ...CLAMP_OPTIONS].includes(product.name)).map((p) => p.name)
+  ...MATERIAL_PRODUCTS.filter((product) => !['Installation', 'Delivery'].includes(product.name)).map((p) => p.name)
 ]))
 
 const UNITS_TO_INCHES = { in: 1, ft: 12, m: 39.3701, cm: 0.393701 }
@@ -129,21 +122,246 @@ const quantity = (value) => Number(value || 0).toFixed(2)
 const uid = (prefix) => prefix + '-' + Math.random().toString(36).slice(2, 8)
 const today = () => new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date())
 
+function isStitchingPanelProduct(name) {
+  if (!name) return false
+  const p = String(name).toLowerCase().trim()
+  if (!p.includes('stitching')) return false
+  return p.includes('american') || p.includes('valence') || p.includes('velance') || p.includes('valance') || p.includes('eyelet') || p.includes('eylet') || p.includes('ripple')
+}
+
 function unitLabel(productName) {
   const p = String(productName || '').toLowerCase().trim()
-  if (p.includes('stitching') || p.includes('hook') || p.includes('clamp') || p.includes('runner') || p.includes('end cap') || p.includes('support') || p.includes('pillow') || p.includes('mattress') || p.includes('bed set') || p.includes('bedsheet')) {
-    return 'pcs'
+  if (
+    p === 'american stitching' ||
+    p === 'valence stitching' ||
+    p === 'velance stitching' ||
+    p === 'valance stitching' ||
+    p === 'eyelet stitching' ||
+    p === 'ripple stitching' ||
+    (p.includes('stitching') && (p.includes('american') || p.includes('valence') || p.includes('velance') || p.includes('valance') || p.includes('eyelet') || p.includes('eylet') || p.includes('ripple')))
+  ) {
+    return 'panels'
   }
-  if (p === 'track' || p === 'tracks' || p.includes('rod')) {
+  if (p === 'wallpaper rolls' || p.includes('wallpaper roll') || p.includes('rolls')) {
+    return 'rolls'
+  }
+  if (p === 'rod' || p === 'track' || p === 'tracks') {
     return 'ft'
   }
-  if (p.includes('curtain') || p.includes('sheer') || p.includes('lining') || p.includes('eyelet') || p.includes('eylet') || p.includes('ripple') || p.includes('american') || p.includes('valance') || p.includes('valence') || p.includes('fabric')) {
-    return 'm'
-  }
-  if (p.includes('blind') || p.includes('roman') || p.includes('roller') || p.includes('zebra') || p.includes('venetian') || p.includes('wallpaper') || p.includes('carpet') || p.includes('matting')) {
+  if (p === 'carpet' || p === 'matting' || p === 'pvc matting' || p.includes('blind') || p.includes('roman') || p.includes('roller') || p.includes('zebra') || p.includes('venetian') || p.includes('wallpaper')) {
     return 'sq ft'
   }
+  if (p === 'shower curtain') {
+    return 'pcs'
+  }
+  if (p.includes('fabric') || (p.includes('curtain') && p !== 'shower curtain') || p.includes('sheer') || p.includes('lining') || p.includes('eyelet') || p.includes('eylet') || p.includes('ripple') || p.includes('american') || p.includes('valance') || p.includes('valence')) {
+    return 'm'
+  }
+  if (p.includes('stitching') || p.includes('hook') || p.includes('clamp') || p.includes('runner') || p.includes('end cap') || p.includes('support') || p.includes('pillow') || p.includes('mattress') || p.includes('bed set') || p.includes('bedsheet') || p.includes('bed sheet') || p.includes('bed back making') || p.includes('soft board making') || p.includes('seating making') || p === 'mat') {
+    return 'pcs'
+  }
   return 'units'
+}
+
+function isCurtainProduct(name) {
+  if (!name) return false
+  const n = String(name).toLowerCase().trim()
+  if (n === 'shower curtain') return false
+  if (n.includes('stitching')) return false
+  return n.includes('curtain') || n.includes('sheer') || n.includes('lining') ||
+    n.includes('eyelet') || n.includes('eylet') || n.includes('ripple') ||
+    n.includes('american') || n.includes('valence') || n.includes('valance')
+}
+
+// Materials that take optional measurement input, manual quantity input and MRP per unit price input:
+const MANUAL_QUANTITY_MATERIALS = new Set([
+  'bed back fabric',
+  'bed border fabric',
+  'bed back making',
+  'soft board fabric',
+  'soft board making',
+  'seating fabric',
+  'seating making',
+  'pillow fabric',
+  'pillow',
+  'mattress',
+  'wallpaper rolls',
+  'wallpaper roll',
+  'wallpaper pasting',
+  'customised wallpaper',
+  'customised wallpaper pasting',
+  'carpet',
+  'bed set',
+  'bed sheet',
+  'bedsheet',
+  'bedsheets',
+  'runner fabric',
+  'matting',
+  'mat',
+  'pvc matting',
+  'rod',
+  'support',
+  'end caps',
+  'end cap',
+  'shower curtain'
+])
+
+function isManualQuantityMaterial(productName) {
+  if (!productName) return false
+  const clean = String(productName).trim().toLowerCase()
+  return MANUAL_QUANTITY_MATERIALS.has(clean)
+}
+
+function isHardwareProduct(productName) {
+  if (!productName) return false
+  const p = String(productName).toLowerCase().trim()
+  if (p.includes('fabric') || p.includes('stitching')) return false
+  return p === 'tracks' || p === 'track' ||
+    p.includes('runner') ||
+    p.includes('hook') ||
+    p.includes('clamp') ||
+    CLAMP_OPTIONS.some((c) => c.toLowerCase() === p)
+}
+
+function isSquareFootBlind(productName) {
+  if (!productName) return false
+  const p = String(productName).toLowerCase().trim()
+  return p.includes('roller blind') ||
+    p.includes('zebra blind') ||
+    p.includes('wooden venetian blind') ||
+    (p.includes('monsoon') && p.includes('blind'))
+}
+
+function getAreaMeasurementSets(area, staffDrafts = []) {
+  if (!area) return []
+  if (Array.isArray(area.measurementSets) && area.measurementSets.length > 0) {
+    return area.measurementSets
+  }
+  const sets = []
+  const seenDims = new Set()
+  if (Number(area.width) > 0 || Number(area.height) > 0) {
+    const unit = area.unit || 'in'
+    const wVal = fromInches(area.width, unit)
+    const hVal = fromInches(area.height, unit)
+    const key = `${wVal}x${hVal}_${unit}`
+    seenDims.add(key)
+    sets.push({
+      id: 'default-set',
+      label: 'Measurement 1',
+      width: unit === 'in' ? Math.round(wVal) : Number(wVal.toFixed(2)),
+      height: unit === 'in' ? Math.round(hVal) : Number(hVal.toFixed(2)),
+      unit
+    })
+  }
+
+  // If there are staff drafts for this area, incorporate any distinct measurements not already in sets
+  if (Array.isArray(staffDrafts) && staffDrafts.length > 0) {
+    const areaDrafts = staffDrafts.filter(d => (d.area || '').trim().toLowerCase() === (area.name || '').trim().toLowerCase() && Number(d.width) > 0 && Number(d.height) > 0)
+    for (let idx = 0; idx < areaDrafts.length; idx++) {
+      const d = areaDrafts[idx]
+      const key = `${d.width}x${d.height}_${d.unit || 'in'}`
+      if (!seenDims.has(key)) {
+        seenDims.add(key)
+        sets.push({
+          id: `staff-mset-${idx + 1}`,
+          label: d.notes ? `${d.notes.split('·')[0].trim()}` : `Field Measurement ${sets.length + 1}`,
+          width: d.width,
+          height: d.height,
+          unit: d.unit || 'in'
+        })
+      }
+    }
+  }
+
+  // Also discover any distinct measurements in area products
+  if (Array.isArray(area.products) && area.products.length > 0) {
+    for (const p of area.products) {
+      if (Array.isArray(p.measurements) && p.measurements.length > 0) {
+        for (const m of p.measurements) {
+          if (Number(m.width) > 0 && Number(m.height) > 0) {
+            const key = `${m.width}x${m.height}_${m.unit || 'in'}`
+            if (!seenDims.has(key)) {
+              seenDims.add(key)
+              sets.push({
+                id: m.id || `prod-mset-${sets.length + 1}`,
+                label: m.label || p.variantLabel || `Measurement ${sets.length + 1}`,
+                width: m.width,
+                height: m.height,
+                unit: m.unit || area.unit || 'in'
+              })
+            }
+          }
+        }
+      } else if (Number(p.width) > 0 && Number(p.height) > 0) {
+        const u = p.unit || area.unit || 'in'
+        const wVal = fromInches(p.width, u)
+        const hVal = fromInches(p.height, u)
+        const key = `${wVal}x${hVal}_${u}`
+        if (!seenDims.has(key)) {
+          seenDims.add(key)
+          sets.push({
+            id: `prod-dim-${sets.length + 1}`,
+            label: p.variantLabel || `${p.product} Measurement`,
+            width: u === 'in' ? Math.round(wVal) : Number(wVal.toFixed(2)),
+            height: u === 'in' ? Math.round(hVal) : Number(hVal.toFixed(2)),
+            unit: u
+          })
+        }
+      }
+    }
+  }
+
+  return sets
+}
+
+function calculateMeasurementSetsCoverage(setsOrArea = [], defaultUnit = 'in', staffDrafts = []) {
+  let sets = []
+  let unit = defaultUnit
+  if (Array.isArray(setsOrArea)) {
+    sets = setsOrArea
+  } else if (setsOrArea && typeof setsOrArea === 'object') {
+    sets = getAreaMeasurementSets(setsOrArea, staffDrafts)
+    unit = setsOrArea.unit || defaultUnit
+  }
+  let totalSqFt = 0
+  let validSets = 0
+  for (const s of sets) {
+    const w = Number(s.width) || 0
+    const h = Number(s.height) || 0
+    const u = s.unit || unit || 'in'
+    if (w > 0 && h > 0) {
+      const sqft = (toInches(w, u) / 12) * (toInches(h, u) / 12)
+      totalSqFt += sqft
+      validSets++
+    }
+  }
+  return { totalSqFt: Number(totalSqFt.toFixed(2)), validSets }
+}
+
+function formatItemMeasurementSummary(item) {
+  if (!item) return ''
+  if (item.measurementSummary) return item.measurementSummary
+  if (Array.isArray(item.measurements) && item.measurements.length > 0) {
+    const valid = item.measurements.filter((m) => Number(m.width) > 0 && Number(m.height) > 0)
+    if (valid.length === 1) {
+      const m = valid[0]
+      const sqft = ((toInches(m.width, m.unit || 'in') / 12) * (toInches(m.height, m.unit || 'in') / 12)).toFixed(2)
+      return `${m.label ? m.label + ': ' : ''}${m.width} × ${m.height} ${m.unit || 'in'} (${Number(sqft)} sq ft)`
+    }
+    if (valid.length > 1) {
+      const totalSqFt = valid.reduce((sum, m) => sum + ((toInches(m.width, m.unit || 'in') / 12) * (toInches(m.height, m.unit || 'in') / 12)), 0)
+      return `${valid.length} sets: ` + valid.map((m) => `${m.label || 'Set'}: ${m.width}×${m.height} ${m.unit || 'in'}`).join(', ') + ` (Total ${totalSqFt.toFixed(2)} sq ft)`
+    }
+  }
+  if (Number(item.width) > 0 && Number(item.height) > 0) {
+    const u = item.unit || 'in'
+    const w = u === 'in' ? Math.round(fromInches(item.width, u)) : Number(fromInches(item.width, u).toFixed(2))
+    const h = u === 'in' ? Math.round(fromInches(item.height, u)) : Number(fromInches(item.height, u).toFixed(2))
+    const sqft = ((toInches(w, u) / 12) * (toInches(h, u) / 12)).toFixed(2)
+    const label = item.variantLabel ? `${item.variantLabel}: ` : ''
+    return `${label}${w} × ${h} ${u} (${Number(sqft)} sq ft)`
+  }
+  return ''
 }
 
 function findProductDef(name) {
@@ -159,8 +377,48 @@ function findProductDef(name) {
   let formula = 'standard'
   let gst = 18
   const isStitching = lower.includes('stitching')
-  const isHardware = lower.includes('track') || lower.includes('runner') || lower.includes('hook') || lower.includes('clamp')
-  if (!isStitching && !isHardware) {
+  const isHardware = isHardwareProduct(lower)
+  if (isStitching) {
+    if (lower.includes('american')) {
+      formula = 'stitching-american'
+      gst = 18
+    } else if (lower.includes('valence') || lower.includes('velance') || lower.includes('valance')) {
+      formula = 'stitching-valance'
+      gst = 18
+    } else if (lower.includes('eyelet') || lower.includes('eylet')) {
+      formula = 'stitching-eyelet'
+      gst = 18
+    } else if (lower.includes('ripple')) {
+      formula = 'stitching-ripple'
+      gst = 18
+    }
+  } else if (isHardware) {
+    if (lower === 'tracks' || lower === 'track') {
+      formula = 'tracks'
+      gst = 18
+    } else if (lower.includes('runner')) {
+      formula = 'runners'
+      gst = 18
+    } else if (lower.includes('hook')) {
+      formula = 'hooks'
+      gst = 18
+    } else if (lower.includes('ceiling clamp')) {
+      formula = 'ceiling-clamp'
+      gst = 18
+    } else if (lower.includes('single wall clamp')) {
+      formula = 'single-clamp'
+      gst = 18
+    } else if (lower.includes('double wall clamp') || lower.includes('double clamp')) {
+      formula = 'double-clamp'
+      gst = 18
+    } else if (lower.includes('clamp')) {
+      formula = 'clamp'
+      gst = 18
+    }
+  } else if (isSquareFootBlind(lower)) {
+    formula = 'blind-sqft'
+    gst = 18
+  } else {
     if (lower.includes('eyelet') || lower.includes('eylet')) {
       formula = 'eyelet'
       gst = 5
@@ -186,8 +444,139 @@ function calculateProduct(product, width, height, details = {}) {
   const h = Number(height) || 0
   const standardArea = Math.max(0, Number(((w / 12) * (h / 12)).toFixed(2)))
 
+  if (isManualQuantityMaterial(product?.name || product)) {
+    const manualQty = (details.manualQuantity !== undefined && details.manualQuantity !== '')
+      ? Number(details.manualQuantity)
+      : (details.quantity !== undefined ? Number(details.quantity) : 0)
+    return {
+      quantity: manualQty,
+      note: details.note || '',
+      unitPrice: Number(details.price) || 0
+    }
+  }
+
   const pName = String(product?.name || product || '').toLowerCase()
-  const isStitchingOrHardware = pName.includes('stitching') || pName.includes('track') || pName.includes('clamp') || pName.includes('hook') || pName.includes('runner')
+  const isStitching = pName.includes('stitching')
+  const isHardware = isHardwareProduct(pName)
+  const isBlind = isSquareFootBlind(pName)
+  const isStitchingOrHardware = isStitching || isHardware
+
+  // 1. Hardware Products: Tracks, Runners, Hooks, Clamps
+  if (isHardware || ['tracks', 'runners', 'hooks', 'ceiling-clamp', 'single-clamp', 'double-clamp', 'clamp'].includes(product?.formula)) {
+    if (w <= 0) {
+      return { quantity: 0, note: 'Width needed', unitPrice: Number(details.price) || 0 }
+    }
+    const trackFeet = Math.ceil(w / 12)
+    if (product?.formula === 'tracks' || pName === 'tracks' || pName === 'track') {
+      return {
+        quantity: trackFeet,
+        note: `⌈${w}"/12⌉ = ${trackFeet} ft running length`,
+        unitPrice: Number(details.price) || 0
+      }
+    }
+    if (product?.formula === 'runners' || (pName.includes('runner') && !pName.includes('fabric'))) {
+      const qty = trackFeet * 3
+      return {
+        quantity: qty,
+        note: `${trackFeet} ft track × 3 = ${qty} pcs`,
+        unitPrice: Number(details.price) || 0
+      }
+    }
+    if (product?.formula === 'hooks' || pName.includes('hook')) {
+      const qty = trackFeet * 3
+      return {
+        quantity: qty,
+        note: `${trackFeet} ft track × 3 = ${qty} pcs`,
+        unitPrice: Number(details.price) || 0
+      }
+    }
+    if (product?.formula === 'ceiling-clamp' || pName.includes('ceiling clamp')) {
+      const qty = Math.ceil(trackFeet / 2)
+      return {
+        quantity: qty,
+        note: `⌈${trackFeet} ft track / 2⌉ = ${qty} pcs`,
+        unitPrice: Number(details.price) || 0
+      }
+    }
+    if (product?.formula === 'single-clamp' || pName.includes('single wall clamp')) {
+      const qty = Math.ceil(trackFeet / 2)
+      return {
+        quantity: qty,
+        note: `⌈${trackFeet} ft track / 2⌉ = ${qty} pcs`,
+        unitPrice: Number(details.price) || 0
+      }
+    }
+    if (product?.formula === 'double-clamp' || pName.includes('double wall clamp') || pName.includes('double clamp')) {
+      const qty = Math.ceil(trackFeet / 2)
+      return {
+        quantity: qty,
+        note: `⌈${trackFeet} ft track / 2⌉ = ${qty} pcs`,
+        unitPrice: Number(details.price) || 0
+      }
+    }
+    if (pName.includes('clamp')) {
+      const qty = Math.ceil(trackFeet / 2)
+      return {
+        quantity: qty,
+        note: `⌈${trackFeet} ft track / 2⌉ = ${qty} pcs`,
+        unitPrice: Number(details.price) || 0
+      }
+    }
+  }
+
+  // 2. Stitching Products: quantity is number of panels
+  // American Stitching: (Width / 18) inches = A rounded up to next integer
+  if (product?.formula === 'stitching-american' || (isStitching && pName.includes('american'))) {
+    if (w <= 0) {
+      return { quantity: 0, note: 'Dimensions needed', unitPrice: Number(details.price) || 0 }
+    }
+    const panels = Math.ceil(w / 18)
+    return {
+      quantity: panels,
+      note: `⌈${w}"/18⌉ = ${panels} panels`,
+      unitPrice: Number(details.price) || 0
+    }
+  }
+
+  // Valence Stitching: ((Width + 14) / 50) inches = A rounded up to next integer
+  if (product?.formula === 'stitching-valance' || (isStitching && (pName.includes('valence') || pName.includes('velance') || pName.includes('valance')))) {
+    if (w <= 0) {
+      return { quantity: 0, note: 'Dimensions needed', unitPrice: Number(details.price) || 0 }
+    }
+    const panels = Math.ceil((w + 14) / 50)
+    return {
+      quantity: panels,
+      note: `⌈(${w}"+14)/50⌉ = ${panels} panels`,
+      unitPrice: Number(details.price) || 0
+    }
+  }
+
+  // Eyelet Stitching: (Width / 20) inches = A rounded up to next integer
+  if (product?.formula === 'stitching-eyelet' || (isStitching && (pName.includes('eyelet') || pName.includes('eylet')))) {
+    if (w <= 0) {
+      return { quantity: 0, note: 'Dimensions needed', unitPrice: Number(details.price) || 0 }
+    }
+    const panels = Math.ceil(w / 20)
+    return {
+      quantity: panels,
+      note: `⌈${w}"/20⌉ = ${panels} panels`,
+      unitPrice: Number(details.price) || 0
+    }
+  }
+
+  // Ripple Stitching: (Width / 20) inches = A rounded up to next integer
+  if (product?.formula === 'stitching-ripple' || (isStitching && pName.includes('ripple'))) {
+    if (w <= 0) {
+      return { quantity: 0, note: 'Dimensions needed', unitPrice: Number(details.price) || 0 }
+    }
+    const panels = Math.ceil(w / 20)
+    return {
+      quantity: panels,
+      note: `⌈${w}"/20⌉ = ${panels} panels`,
+      unitPrice: Number(details.price) || 0
+    }
+  }
+
   const effectiveFormula = (!isStitchingOrHardware && (pName.includes('eyelet') || pName.includes('eylet'))) ? 'eyelet'
     : (!isStitchingOrHardware && pName.includes('ripple')) ? 'ripple'
     : (!isStitchingOrHardware && pName.includes('american')) ? 'american'
@@ -196,17 +585,19 @@ function calculateProduct(product, width, height, details = {}) {
     : (product?.formula && product.formula !== 'standard' ? product.formula : 'standard')
 
   if (product.formula === 'american' || effectiveFormula === 'american') {
-    const panels = Math.ceil(w / 18)
-    const drops = (h + 15) / 39
-    const qty = Number((panels * drops).toFixed(2))
-    return { quantity: qty, note: panels + ' panels × ' + Number(drops.toFixed(2)) + ' drops = ' + qty.toFixed(2) + ' m', unitPrice: Number(details.price) || 0 }
+    if (w <= 0 || h <= 0) {
+      return { quantity: 0, note: 'Dimensions needed', unitPrice: Number(details.price) || 0 }
+    }
+    const A = Math.ceil(w / 18)
+    const B = (h + 15) / 39
+    const qty = Number((A * B).toFixed(2))
+    return { quantity: qty, note: `⌈${w}"/18⌉ × (${h}"+15)/39 = ${A} panels × ${Number(B.toFixed(2))} drops = ${qty.toFixed(2)} m`, unitPrice: Number(details.price) || 0 }
   }
 
-  // 1. For eylet and ripple curtain:
-  // Total Quantity = ⌈W / 20⌉ × ((H + 15) / 39)
-  // Width divided by 20 inches, round to next figure = A
-  // Height plus 15 inches divided by 39 inches = B
-  // Total Quantity = A × B (rounded to 2 decimal places)
+  // Eyelet & Ripple curtains formula:
+  // (Width / 20) inches = A rounded to next figure
+  // ((Height + 15) / 39) inches = B
+  // Total Quantity = B × A (rounded to 2 decimal places)
   if (product.formula === 'eyelet' || product.formula === 'ripple' || effectiveFormula === 'eyelet' || effectiveFormula === 'ripple') {
     if (w <= 0 || h <= 0) {
       return { quantity: 0, note: 'Dimensions needed', unitPrice: Number(details.price) || 0 }
@@ -221,11 +612,18 @@ function calculateProduct(product, width, height, details = {}) {
     }
   }
 
+  // Valence formula:
+  // ((Width + 14) / 50) inches = A rounded to next figure
+  // ((A × 15) / 39) inches = B rounded to next figure
+  // B is the quantity in metres
   if (product.formula === 'valance' || effectiveFormula === 'valance') {
-    const breadths = Math.ceil(w / 50)
-    const meters = Math.ceil(((breadths * 15) / 39) * 2) / 2
-    const qty = Number(meters.toFixed(2))
-    return { quantity: qty, note: breadths + ' breadths · rounded to half metre = ' + qty.toFixed(2) + ' m', unitPrice: Number(details.price) || 0 }
+    if (w <= 0) {
+      return { quantity: 0, note: 'Dimensions needed', unitPrice: Number(details.price) || 0 }
+    }
+    const A = Math.ceil((w + 14) / 50)
+    const B = Math.ceil((A * 15) / 39)
+    const qty = Number(B.toFixed(2))
+    return { quantity: qty, note: `⌈(${w}"+14)/50⌉ = ${A} · ⌈(${A}×15)/39⌉ = ${qty} m`, unitPrice: Number(details.price) || 0 }
   }
 
   if (product.formula === 'roman' || effectiveFormula === 'roman') {
@@ -242,6 +640,28 @@ function calculateProduct(product, width, height, details = {}) {
       quantity: qty,
       unitPrice: billableArea ? total / billableArea : 0,
       note: Number(fabricQty.toFixed(2)) + ' m fabric + lining · ' + qty + ' sq ft chargeable'
+    }
+  }
+
+  // 3. Blinds: Roller blinds, Zebra blinds, Wooden Venetian blinds, Monsoon blinds
+  // (Width / 12) = A round to feet as a whole number
+  // (Height / 12) = B round to feet as whole number
+  // Quantity = A x B sqft calculation with minimum chargeable area option (11 or 16.5 sqft)
+  if (product?.formula === 'blind-sqft' || isBlind) {
+    if (w <= 0 || h <= 0) {
+      return { quantity: 0, note: 'Dimensions needed', unitPrice: Number(details.price) || 0 }
+    }
+    const A = Math.max(1, Math.round(w / 12))
+    const B = Math.max(1, Math.round(h / 12))
+    const rawArea = A * B
+    const minChargeable = (details.minimumArea !== undefined && details.minimumArea !== null && details.minimumArea !== '')
+      ? Number(details.minimumArea)
+      : (product?.minimumArea !== undefined && product?.minimumArea !== null && product?.minimumArea !== '' ? Number(product.minimumArea) : 11)
+    const billableArea = Math.max(rawArea, minChargeable)
+    return {
+      quantity: billableArea,
+      note: `${A} ft (${w}") × ${B} ft (${h}") = ${rawArea} sq ft${billableArea > rawArea ? ` (Min. ${billableArea} sq ft chargeable)` : ''}`,
+      unitPrice: Number(details.price) || 0
     }
   }
 
@@ -382,6 +802,7 @@ function staffSubmissionLine(submission) {
   const price = (submission.unitPrice !== undefined && submission.unitPrice !== null && submission.unitPrice !== '') ? Number(submission.unitPrice) : 0
   const gst = (submission.gst !== undefined && submission.gst !== null && submission.gst !== '') ? Number(submission.gst) : product.gst
   const note = measured.note + (submission.notes ? ' · ' + submission.notes : '') + ' · Field entry by ' + (submission.staffName || 'Staff')
+  const measureSummary = formatItemMeasurementSummary({ width: widthInInches, height: heightInInches, unit })
   return {
     id: 'staff-' + subId,
     rawId: subId,
@@ -397,9 +818,10 @@ function staffSubmissionLine(submission) {
     curtainSetId: submission.curtainSetId || '',
     curtainSystem: submission.curtainSystem || '',
     clampType: submission.clampType || '',
-    width: submission.width,
-    height: submission.height,
-    unit
+    width: widthInInches,
+    height: heightInInches,
+    unit,
+    measurementSummary: measureSummary
   }
 }
 
@@ -529,24 +951,100 @@ function getCachedProjects() {
   } catch { return [] }
 }
 
-function saveCachedProjects(projects) {
+let saveProjectsTimer = null
+function saveCachedProjects(projects, immediate = false) {
+  const doSave = () => {
+    try {
+      const normalized = (projects || []).map(filterDeletedDraftsFromProject)
+      localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(normalized))
+    } catch {}
+  }
+  if (immediate) {
+    if (saveProjectsTimer) clearTimeout(saveProjectsTimer)
+    doSave()
+  } else {
+    if (saveProjectsTimer) clearTimeout(saveProjectsTimer)
+    saveProjectsTimer = setTimeout(doSave, 300)
+  }
+}
+
+const DELETED_STAFF_KEY = 'krishna-decor-deleted-staff-ids'
+
+function getDeletedStaffIds() {
   try {
-    const normalized = (projects || []).map(filterDeletedDraftsFromProject)
-    localStorage.setItem(PROJECTS_CACHE_KEY, JSON.stringify(normalized))
+    const data = JSON.parse(localStorage.getItem(DELETED_STAFF_KEY) || '[]')
+    if (Array.isArray(data)) {
+      return new Set(data.map((item) => String(item).toLowerCase().trim()).filter(Boolean))
+    }
   } catch {}
+  return new Set()
+}
+
+function addDeletedStaffId(id, name) {
+  try {
+    const set = getDeletedStaffIds()
+    if (id) set.add(String(id).toLowerCase().trim())
+    if (name) set.add(String(name).toLowerCase().trim())
+    localStorage.setItem(DELETED_STAFF_KEY, JSON.stringify([...set]))
+  } catch {}
+}
+
+function unmarkDeletedStaff(name, id) {
+  try {
+    const set = getDeletedStaffIds()
+    if (id) set.delete(String(id).toLowerCase().trim())
+    if (name) set.delete(String(name).toLowerCase().trim())
+    localStorage.setItem(DELETED_STAFF_KEY, JSON.stringify([...set]))
+  } catch {}
+}
+
+function filterDeletedStaff(staffList = []) {
+  if (!Array.isArray(staffList)) return []
+  const deleted = getDeletedStaffIds()
+  return staffList.filter((s) => {
+    if (!s) return false
+    const sid = String(s.id || '').toLowerCase().trim()
+    const sname = String(s.name || '').toLowerCase().trim()
+    return (!sid || !deleted.has(sid)) && (!sname || !deleted.has(sname))
+  })
 }
 
 function getCachedStaff() {
   try {
     const data = JSON.parse(localStorage.getItem(STAFF_CACHE_KEY) || '[]')
-    return Array.isArray(data) ? data : []
+    return Array.isArray(data) ? filterDeletedStaff(data) : []
   } catch { return [] }
 }
 
 function saveCachedStaff(staff) {
   try {
-    localStorage.setItem(STAFF_CACHE_KEY, JSON.stringify(staff))
+    const clean = filterDeletedStaff(staff || [])
+    localStorage.setItem(STAFF_CACHE_KEY, JSON.stringify(clean))
   } catch {}
+}
+
+const CLOUD_QUEUE_KEY = 'krishna-decor-cloud-queue'
+function getCloudQueue() {
+  try {
+    const data = JSON.parse(localStorage.getItem(CLOUD_QUEUE_KEY) || '[]')
+    return Array.isArray(data) ? data : []
+  } catch { return [] }
+}
+
+let saveCloudQueueTimer = null
+function saveCloudQueue(queue, immediate = false) {
+  const doSave = () => {
+    try {
+      localStorage.setItem(CLOUD_QUEUE_KEY, JSON.stringify(queue))
+    } catch {}
+  }
+  if (immediate) {
+    if (saveCloudQueueTimer) clearTimeout(saveCloudQueueTimer)
+    doSave()
+  } else {
+    if (saveCloudQueueTimer) clearTimeout(saveCloudQueueTimer)
+    saveCloudQueueTimer = setTimeout(doSave, 300)
+  }
 }
 
 function getManagerQueue() {
@@ -556,25 +1054,42 @@ function getManagerQueue() {
   } catch { return [] }
 }
 
-function saveManagerQueue(queue) {
-  try {
-    localStorage.setItem(MANAGER_QUEUE_KEY, JSON.stringify(queue))
-  } catch {}
+let saveQueueTimer = null
+function saveManagerQueue(queue, immediate = false) {
+  const doSave = () => {
+    try {
+      localStorage.setItem(MANAGER_QUEUE_KEY, JSON.stringify(queue))
+    } catch {}
+  }
+  if (immediate) {
+    if (saveQueueTimer) clearTimeout(saveQueueTimer)
+    doSave()
+  } else {
+    if (saveQueueTimer) clearTimeout(saveQueueTimer)
+    saveQueueTimer = setTimeout(doSave, 300)
+  }
 }
 
 function enqueueMutation(mutation) {
-  const queue = getManagerQueue()
-  queue.push({
+  const mut = {
     id: globalThis.crypto?.randomUUID?.() || 'mut-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     timestamp: new Date().toISOString(),
     ...mutation
-  })
+  }
+  const queue = getManagerQueue()
+  queue.push(mut)
   saveManagerQueue(queue)
+
+  if (isDesktopApp()) {
+    const cloudQ = getCloudQueue()
+    cloudQ.push(mut)
+    saveCloudQueue(cloudQ)
+  }
   return queue
 }
 
 function isNetworkError(error) {
-  return !error?.status && (error instanceof TypeError || /network|fetch|internet|failed|load|abort/i.test(String(error?.message || '')))
+  return !error?.status && (error instanceof TypeError || /network|fetch|internet|failed|load|abort|offline/i.test(String(error?.message || '')))
 }
 
 async function apiRequest(path, options = {}) {
@@ -604,11 +1119,27 @@ async function apiRequest(path, options = {}) {
   return body
 }
 
-function getTotals(items) {
-  const untaxed = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0)
-  const tax5 = items.filter((item) => item.gst === 5).reduce((sum, item) => sum + item.quantity * item.unitPrice * 0.05, 0)
-  const tax18 = items.filter((item) => item.gst === 18).reduce((sum, item) => sum + item.quantity * item.unitPrice * 0.18, 0)
-  return { untaxed, tax5, tax18, tax: tax5 + tax18, total: untaxed + tax5 + tax18 }
+function getTotals(items, quoteOrDiscount = null) {
+  if (!Array.isArray(items)) return { untaxed: 0, regularUntaxed: 0, discount: 0, rawDiscount: 0, tax5: 0, tax18: 0, tax: 0, total: 0 }
+  const regularItems = items.filter((item) => !isDiscountLine(item))
+  const regularUntaxed = regularItems
+    .filter((item) => !isInstallationServiceLine(item) && !isDeliveryServiceLine(item))
+    .reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0), 0)
+
+  const untaxed = regularItems.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0), 0)
+  const tax5 = regularItems.filter((item) => Number(item.gst) === 5).reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0) * 0.05, 0)
+  const tax18 = regularItems.filter((item) => Number(item.gst) === 18).reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0) * 0.18, 0)
+  const tax = tax5 + tax18
+
+  const discountLine = items.find((item) => isDiscountLine(item))
+  const rawDiscount = discountLine
+    ? (Number(discountLine.unitPrice) || 0)
+    : (typeof quoteOrDiscount === 'number' ? quoteOrDiscount : (Number(quoteOrDiscount?.discount) || 0))
+  const discount = Math.min(Math.max(0, rawDiscount), regularUntaxed)
+
+  const total = Math.max(0, (untaxed + tax) - discount)
+
+  return { untaxed, regularUntaxed, discount, rawDiscount, tax5, tax18, tax, total }
 }
 
 function App() {
@@ -637,7 +1168,321 @@ function App() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [syncState, setSyncState] = useState('synced')
   const [pendingCount, setPendingCount] = useState(() => getManagerQueue().length)
+  const [cloudSyncState, setCloudSyncState] = useState('synced')
+  const [cloudPendingCount, setCloudPendingCount] = useState(() => getCloudQueue().length)
+  const [backupConfig, setBackupConfig] = useState({ configured: true, path: '' })
   const syncingRef = useRef(false)
+  const syncTimeoutRef = useRef(null)
+  const backupTimeoutRef = useRef(null)
+  const cloudSyncingRef = useRef(false)
+  const cloudSyncTimeoutRef = useRef(null)
+
+  const debouncedSync = (delay = 1000) => {
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current)
+    syncTimeoutRef.current = setTimeout(() => {
+      syncAll()
+    }, delay)
+  }
+
+  const debouncedCloudSync = (delay = 4000) => {
+    if (!isDesktopApp()) return
+    if (cloudSyncTimeoutRef.current) clearTimeout(cloudSyncTimeoutRef.current)
+    cloudSyncTimeoutRef.current = setTimeout(() => {
+      syncCloud()
+    }, delay)
+  }
+
+  const getCloudAuthToken = async (cloudBase, forceFresh = false) => {
+    if (!forceFresh) {
+      const cached = localStorage.getItem('krishna-decor-cloud-token')
+      if (cached) return cached
+    }
+    let creds = null
+    try {
+      const stored = localStorage.getItem('krishna-decor-cloud-creds')
+      if (stored) creds = JSON.parse(stored)
+    } catch {}
+    if (!creds || !creds.password) {
+      creds = { name: 'Dinesh', email: 'dinesh@krishnadecor.local', password: 'KDecor2026', role: 'manager' }
+    }
+    const authRes = await fetch(cloudBase + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(creds),
+      signal: AbortSignal.timeout(35000)
+    })
+    if (!authRes.ok) throw new Error('Cloud authentication failed (status ' + authRes.status + ')')
+    const authData = await authRes.json()
+    if (!authData.token) throw new Error('No authentication token returned by cloud')
+    localStorage.setItem('krishna-decor-cloud-token', authData.token)
+    return authData.token
+  }
+
+  const mergeCloudData = (cloudData) => {
+    if (!cloudData || !Array.isArray(cloudData.projects)) return
+    const cloudProjects = cloudData.projects.map(filterDeletedDraftsFromProject)
+    const cloudStaff = Array.isArray(cloudData.staff) ? filterDeletedStaff(cloudData.staff) : []
+
+    setProjects((currentProjects) => {
+      let hasChanges = false
+      const updatedList = currentProjects.map((localProj) => {
+        const cloudProj = cloudProjects.find((p) => p.id === localProj.id)
+        if (!cloudProj) return localProj
+
+        const localTime = new Date(localProj.updatedAt || localProj.createdAt || 0).getTime()
+        const cloudTime = new Date(cloudProj.updatedAt || cloudProj.createdAt || 0).getTime()
+        const cloudIsNewer = cloudTime > localTime
+
+        // 1. Merge staffDrafts (union by ID)
+        const localDraftMap = new Map((localProj.staffDrafts || []).map((d) => [String(d.id || d.rawId || ''), d]))
+        let draftsChanged = false
+        for (const cd of (cloudProj.staffDrafts || [])) {
+          const cid = String(cd.id || cd.rawId || '')
+          if (cid && !localDraftMap.has(cid)) {
+            localDraftMap.set(cid, cd)
+            draftsChanged = true
+          }
+        }
+        const mergedDrafts = [...localDraftMap.values()]
+
+        // 2. Merge activityLog (union by ID)
+        const localActMap = new Map((localProj.activityLog || []).map((a) => [String(a.id || ''), a]))
+        let actsChanged = false
+        for (const ca of (cloudProj.activityLog || [])) {
+          const cid = String(ca.id || '')
+          if (cid && !localActMap.has(cid)) {
+            localActMap.set(cid, ca)
+            actsChanged = true
+          }
+        }
+        const mergedActs = [...localActMap.values()].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+        // 3. Merge quotations (union by ID, keeping newer version if updated)
+        const localQuoteMap = new Map((localProj.quotations || []).map((q) => [String(q.id || ''), q]))
+        let quotesChanged = false
+        for (const cq of (cloudProj.quotations || [])) {
+          const qid = String(cq.id || '')
+          if (!qid) continue
+          const existing = localQuoteMap.get(qid)
+          if (!existing) {
+            localQuoteMap.set(qid, cq)
+            quotesChanged = true
+          } else if (cloudIsNewer) {
+            localQuoteMap.set(qid, cq)
+            quotesChanged = true
+          }
+        }
+        const mergedQuotations = [...localQuoteMap.values()]
+
+        // 4. Merge payments (union by ID)
+        const localPayMap = new Map((localProj.payments || []).map((p) => [String(p.id || ''), p]))
+        let paymentsChanged = false
+        for (const cp of (cloudProj.payments || [])) {
+          const pid = String(cp.id || '')
+          if (!pid) continue
+          if (!localPayMap.has(pid)) {
+            localPayMap.set(pid, cp)
+            paymentsChanged = true
+          } else if (cloudIsNewer) {
+            localPayMap.set(pid, cp)
+            paymentsChanged = true
+          }
+        }
+        const mergedPayments = [...localPayMap.values()]
+
+        // 5. Merge areas (union of area objects or names)
+        const localAreaNames = new Set((localProj.areas || []).map((a) => typeof a === 'string' ? a : a.name))
+        let areasChanged = false
+        const mergedAreas = [...(localProj.areas || [])]
+        for (const ca of (cloudProj.areas || [])) {
+          const caname = typeof ca === 'string' ? ca : ca.name
+          if (caname && !localAreaNames.has(caname)) {
+            localAreaNames.add(caname)
+            mergedAreas.push(ca)
+            areasChanged = true
+          }
+        }
+
+        // Apply changes
+        if (cloudIsNewer) {
+          hasChanges = true
+          return {
+            ...cloudProj,
+            staffDrafts: mergedDrafts,
+            activityLog: mergedActs,
+            quotations: mergedQuotations,
+            payments: mergedPayments,
+            areas: mergedAreas,
+            updatedAt: cloudProj.updatedAt || new Date().toISOString()
+          }
+        } else if (draftsChanged || actsChanged || quotesChanged || paymentsChanged || areasChanged) {
+          hasChanges = true
+          return {
+            ...localProj,
+            staffDrafts: mergedDrafts,
+            activityLog: mergedActs,
+            quotations: mergedQuotations,
+            payments: mergedPayments,
+            areas: mergedAreas,
+            updatedAt: new Date().toISOString()
+          }
+        }
+        return localProj
+      })
+
+      // Add any projects that exist on cloud but not locally
+      const localIds = new Set(currentProjects.map((p) => p.id))
+      const brandNewProjects = cloudProjects.filter((p) => !localIds.has(p.id))
+      if (brandNewProjects.length > 0) {
+        hasChanges = true
+        updatedList.unshift(...brandNewProjects)
+      }
+
+      if (hasChanges) {
+        saveCachedProjects(updatedList)
+        mirrorToDesktopBackup(updatedList, staff)
+        return updatedList
+      }
+      return currentProjects
+    })
+
+    if (Array.isArray(cloudData.staff)) {
+      setStaff((currentStaff) => {
+        const cloudQ = getCloudQueue()
+        const pendingCreated = cloudQ.filter((m) => m.type === 'create_staff' && m.staff).map((m) => m.staff)
+        const pendingDeletedIds = new Set(cloudQ.filter((m) => m.type === 'delete_staff' && m.staffId).map((m) => String(m.staffId).toLowerCase().trim()))
+        const deletedIds = getDeletedStaffIds()
+
+        const activeCloudStaff = filterDeletedStaff(cloudStaff).filter((s) => (
+          !pendingDeletedIds.has(String(s.id).toLowerCase().trim()) &&
+          !deletedIds.has(String(s.id).toLowerCase().trim()) &&
+          !deletedIds.has(String(s.name).toLowerCase().trim())
+        ))
+        const activeIds = new Set(activeCloudStaff.map((s) => s.id))
+        const unconfirmedCreated = filterDeletedStaff(pendingCreated).filter((s) => !activeIds.has(s.id))
+
+        const mergedStaff = filterDeletedStaff([...activeCloudStaff, ...unconfirmedCreated])
+        const currentIds = currentStaff.map((s) => s.id).sort().join(',')
+        const mergedIds = mergedStaff.map((s) => s.id).sort().join(',')
+
+        if (currentIds !== mergedIds) {
+          saveCachedStaff(mergedStaff)
+          mirrorToDesktopBackup(projects, mergedStaff)
+          return mergedStaff
+        }
+        return currentStaff
+      })
+    }
+  }
+
+  const syncCloud = async (userInitiated = false) => {
+    if (!isDesktopApp() || cloudSyncingRef.current) return
+    cloudSyncingRef.current = true
+    setCloudSyncState('syncing')
+    try {
+      const cloudBase = cloudApiBase()
+      if (!cloudBase) {
+        setCloudSyncState('synced')
+        return
+      }
+
+      // Obtain or refresh auth token
+      let cloudToken = await getCloudAuthToken(cloudBase, false).catch(() => null)
+      if (!cloudToken) {
+        cloudToken = await getCloudAuthToken(cloudBase, true).catch(() => null)
+      }
+      if (!cloudToken) {
+        throw new Error('Could not authenticate with 24/7 cloud server.')
+      }
+
+      // Build mutation list:
+      // 1. Pending mutations from local queue
+      const queue = getCloudQueue()
+      const sentIds = new Set(queue.map((m) => m.id))
+      const mutations = [...queue]
+
+      // 2. Ensure tombstoned staff are deleted on cloud
+      const deletedStaffIds = getDeletedStaffIds()
+      for (const delId of deletedStaffIds) {
+        if (!mutations.some((m) => m.type === 'delete_staff' && (m.staffId === delId || m.staffName === delId))) {
+          mutations.push({
+            id: 'tombstone-' + delId,
+            type: 'delete_staff',
+            staffId: delId,
+            staffName: delId
+          })
+        }
+      }
+
+      // 3. When user clicks sync or queue is empty, ensure all local projects exist on cloud
+      if (userInitiated || queue.length === 0) {
+        const cachedProjects = getCachedProjects()
+        for (const proj of cachedProjects) {
+          if (!mutations.some((m) => (m.type === 'create_project' || m.type === 'update_project') && (m.projectId === proj.id || m.project?.id === proj.id))) {
+            mutations.push({
+              id: 'ensure-' + proj.id + '-' + Date.now().toString(36),
+              type: 'create_project',
+              project: proj
+            })
+          }
+        }
+      }
+
+      let syncRes = await fetch(cloudBase + '/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + cloudToken
+        },
+        body: JSON.stringify({ mutations }),
+        signal: AbortSignal.timeout(35000)
+      })
+
+      // If token expired (401), re-authenticate and retry ONCE
+      if (syncRes.status === 401) {
+        localStorage.removeItem('krishna-decor-cloud-token')
+        cloudToken = await getCloudAuthToken(cloudBase, true)
+        syncRes = await fetch(cloudBase + '/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + cloudToken
+          },
+          body: JSON.stringify({ mutations }),
+          signal: AbortSignal.timeout(35000)
+        })
+      }
+
+      if (!syncRes.ok) {
+        throw new Error('Cloud sync responded with status ' + syncRes.status)
+      }
+
+      const cloudData = await syncRes.json()
+
+      // Clear confirmed mutations from queue
+      const currentQueue = getCloudQueue()
+      const remaining = currentQueue.filter((m) => !sentIds.has(m.id))
+      saveCloudQueue(remaining, true)
+      setCloudPendingCount(remaining.length)
+
+      if (cloudData) {
+        mergeCloudData(cloudData)
+      }
+
+      setCloudSyncState('synced')
+      if (userInitiated) {
+        setToast('Cloud synchronization complete. All projects up to date.')
+      }
+    } catch (err) {
+      setCloudSyncState('offline')
+      if (userInitiated) {
+        setToast('Cloud unreachable — all data is saved locally on this computer.')
+      }
+    } finally {
+      cloudSyncingRef.current = false
+      setCloudPendingCount(getCloudQueue().length)
+    }
+  }
 
   const syncAll = async (userInitiated = false) => {
     if (!session || syncingRef.current) return
@@ -648,13 +1493,16 @@ function App() {
       let syncedData = null
 
       if (queue.length > 0) {
+        const sentIds = new Set(queue.map((m) => m.id))
         try {
           syncedData = await apiRequest('/sync', {
             method: 'POST',
             body: JSON.stringify({ mutations: queue })
           })
-          saveManagerQueue([])
-          setPendingCount(0)
+          const currentQueue = getManagerQueue()
+          const remaining = currentQueue.filter((m) => !sentIds.has(m.id))
+          saveManagerQueue(remaining)
+          setPendingCount(remaining.length)
         } catch (syncErr) {
           if (syncErr.isNetwork) throw syncErr
           const remaining = []
@@ -680,8 +1528,11 @@ function App() {
               }
             }
           }
-          saveManagerQueue(remaining)
-          setPendingCount(remaining.length)
+          const currentQueue = getManagerQueue()
+          const unsentIds = new Set(remaining.map((m) => m.id))
+          const mergedQueue = currentQueue.filter((m) => !sentIds.has(m.id) || unsentIds.has(m.id))
+          saveManagerQueue(mergedQueue)
+          setPendingCount(mergedQueue.length)
         }
       }
 
@@ -696,23 +1547,39 @@ function App() {
       const nextProjects = (syncedData.projects || []).map(filterDeletedDraftsFromProject)
       const nextStaff = syncedData.staff || []
 
-      setProjects(nextProjects)
+      setProjects((currentProjects) => {
+        const pendingQueue = getManagerQueue()
+        const pendingProjectIds = new Set(
+          pendingQueue.map((m) => m.projectId || m.project?.id).filter(Boolean)
+        )
+
+        return nextProjects.map((serverProj) => {
+          if (pendingProjectIds.has(serverProj.id)) {
+            const localProj = currentProjects.find((p) => p.id === serverProj.id)
+            if (localProj) {
+              return localProj
+            }
+          }
+          return serverProj
+        })
+      })
       saveCachedProjects(nextProjects)
-      if (nextStaff.length) {
-        setStaff(nextStaff)
-        saveCachedStaff(nextStaff)
+      if (Array.isArray(nextStaff)) {
+        const cleanStaff = filterDeletedStaff(nextStaff)
+        setStaff(cleanStaff)
+        saveCachedStaff(cleanStaff)
       }
       setSelectedProjectId((current) => nextProjects.some((item) => item.id === current) ? current : (nextProjects[0]?.id || ''))
       setSyncState('synced')
       if (userInitiated) {
-        setToast('Synchronized with cloud.')
+        setToast('Synchronized with local storage.')
       }
 
       // Automatically mirror live data to Windows desktop local disk backup if running inside desktop hub
       if (typeof window !== 'undefined' && window.krishnaHub?.saveBackup) {
         window.krishnaHub.saveBackup({
           projects: nextProjects,
-          staff: nextStaff
+          staff: filterDeletedStaff(nextStaff)
         }).catch(() => {})
       }
     } catch (error) {
@@ -735,20 +1602,46 @@ function App() {
   useEffect(() => {
     if (session) {
       syncAll()
-      const interval = window.setInterval(() => syncAll(), 10000)
-      const onOnline = () => syncAll()
+      const interval = window.setInterval(() => syncAll(), 8000)
+      const onOnline = () => {
+        syncAll()
+        if (isDesktopApp()) syncCloud()
+      }
+      const onFocusOrVisible = () => {
+        syncAll()
+        if (isDesktopApp()) syncCloud()
+      }
       window.addEventListener('online', onOnline)
+      window.addEventListener('focus', onFocusOrVisible)
+      document.addEventListener('visibilitychange', onFocusOrVisible)
       return () => {
         window.clearInterval(interval)
         window.removeEventListener('online', onOnline)
+        window.removeEventListener('focus', onFocusOrVisible)
+        document.removeEventListener('visibilitychange', onFocusOrVisible)
       }
     }
   }, [session])
 
   useEffect(() => {
+    if (session && isDesktopApp()) {
+      syncCloud()
+      const cloudInterval = window.setInterval(() => syncCloud(), 4000)
+      return () => window.clearInterval(cloudInterval)
+    }
+  }, [session])
+
+  useEffect(() => {
+    if (session && isDesktopApp() && (page === 'team' || page === 'overview')) {
+      syncCloud()
+    }
+  }, [session, page])
+
+  useEffect(() => {
     if (typeof window !== 'undefined' && window.krishnaHub?.onTriggerSync) {
       const cleanup = window.krishnaHub.onTriggerSync(() => {
         syncAll(true)
+        if (isDesktopApp()) syncCloud(true)
       })
       return cleanup
     }
@@ -758,9 +1651,9 @@ function App() {
     if (typeof window !== 'undefined' && window.krishnaHub?.onCloudUrlChanged) {
       const cleanup = window.krishnaHub.onCloudUrlChanged((newUrl) => {
         if (newUrl) {
-          setApiBase(newUrl)
-          setToast('Sync address updated to ' + newUrl)
-          syncAll(true)
+          localStorage.setItem('krishna-decor-cloud-api-url', newUrl)
+          setToast('Cloud sync address updated to ' + newUrl)
+          syncCloud(true)
         }
       })
       return cleanup
@@ -773,6 +1666,28 @@ function App() {
       return () => window.clearTimeout(timer)
     }
   }, [toast])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.krishnaHub?.getBackupDirectory) {
+      window.krishnaHub.getBackupDirectory().then((res) => {
+        if (res) {
+          setBackupConfig({
+            configured: Boolean(res.configured),
+            path: res.backupDirectory || ''
+          })
+        }
+      }).catch(() => {})
+    }
+    if (typeof window !== 'undefined' && window.krishnaHub?.onBackupDirChanged) {
+      const cleanup = window.krishnaHub.onBackupDirChanged((data) => {
+        setBackupConfig({
+          configured: Boolean(data?.configured),
+          path: data?.path || ''
+        })
+      })
+      return cleanup
+    }
+  }, [])
 
   if (!connectionReady) return <ConnectionSetup role="Manager" onConnected={() => setConnectionReady(true)} />
 
@@ -787,14 +1702,16 @@ function App() {
 
   const mirrorToDesktopBackup = (nextProjectsList, nextStaffList) => {
     if (typeof window !== 'undefined' && window.krishnaHub?.saveBackup) {
+      const deletedStaff = [...getDeletedStaffIds()]
       window.krishnaHub.saveBackup({
         projects: nextProjectsList || projects,
-        staff: nextStaffList || staff
+        staff: Array.isArray(nextStaffList) ? nextStaffList : staff,
+        deletedStaff
       }).catch(() => {})
     }
   }
 
-  const patchProject = (change) => {
+  const patchProject = (change, immediateSync = false) => {
     if (!project) return null
     const nextQuotations = change.quotations ? mergeDuplicateQuotations(change.quotations) : project.quotations
     const normalizedChange = change.quotations ? { ...change, quotations: nextQuotations } : change
@@ -802,10 +1719,24 @@ function App() {
     const nextList = projects.map((item) => item.id === project.id ? updated : item)
     setProjects(nextList)
     saveCachedProjects(nextList)
-    mirrorToDesktopBackup(nextList, staff)
+
+    if (backupTimeoutRef.current) clearTimeout(backupTimeoutRef.current)
+    backupTimeoutRef.current = setTimeout(() => {
+      mirrorToDesktopBackup(nextList, staff)
+    }, 600)
+
     enqueueMutation({ type: 'update_project', projectId: project.id, change: normalizedChange })
     setPendingCount(getManagerQueue().length)
-    syncAll()
+
+    if (immediateSync) {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current)
+      syncAll()
+      debouncedCloudSync(1000)
+    } else {
+      debouncedSync(1000)
+      debouncedCloudSync(4000)
+    }
+
     return updated
   }
 
@@ -849,6 +1780,7 @@ function App() {
     setShowCreate(false)
     setToast('Project created — saved locally.')
     syncAll()
+    debouncedCloudSync(1500)
   }
 
   const completeAuthentication = (nextSession) => {
@@ -878,31 +1810,106 @@ function App() {
     setAreaId(next?.areas?.[0]?.id || '')
     setToast(project.name + ' was deleted.')
     syncAll()
+    debouncedCloudSync(1500)
   }
 
-  const createStaffMember = (formValues) => {
+  const createStaffMember = async (formValues) => {
     const id = uid('staff')
-    const newStaff = { id, name: formValues.name.trim(), role: 'staff', createdAt: new Date().toISOString() }
-    const nextStaffList = [...staff, newStaff]
+    const staffName = formValues.name.trim()
+    unmarkDeletedStaff(staffName, id)
+    const newStaff = { id, name: staffName, role: 'staff', createdAt: new Date().toISOString() }
+    const nextStaffList = [...filterDeletedStaff(staff).filter((s) => s.id !== id && s.name.toLowerCase() !== staffName.toLowerCase()), newStaff]
     setStaff(nextStaffList)
     saveCachedStaff(nextStaffList)
     mirrorToDesktopBackup(projects, nextStaffList)
     enqueueMutation({
       type: 'create_staff',
-      staff: { id, name: formValues.name.trim(), password: formValues.password }
+      staff: { id, name: staffName, password: formValues.password }
     })
     setPendingCount(getManagerQueue().length)
     syncAll()
+    if (isDesktopApp()) {
+      syncCloud()
+    } else {
+      debouncedCloudSync(1000)
+    }
   }
 
-  const removeStaffMember = (person) => {
-    const nextStaffList = staff.filter((item) => item.id !== person.id)
+  const removeStaffMember = async (person) => {
+    if (!person) return
+    const personId = String(person.id || '').trim()
+    const personName = String(person.name || '').trim()
+
+    // 1. Immediately record in persistent tombstone set
+    addDeletedStaffId(personId, personName)
+
+    // 2. Filter local React state and save clean staff
+    const nextStaffList = staff.filter((item) => {
+      if (personId && item.id === personId) return false
+      if (personName && String(item.name || '').trim().toLowerCase() === personName.toLowerCase()) return false
+      return true
+    })
     setStaff(nextStaffList)
     saveCachedStaff(nextStaffList)
+
+    // 3. Mirror directly to desktop local disk backup & IPC
     mirrorToDesktopBackup(projects, nextStaffList)
-    enqueueMutation({ type: 'delete_staff', staffId: person.id })
+    if (typeof window !== 'undefined' && window.krishnaHub?.deleteStaff) {
+      window.krishnaHub.deleteStaff({ id: personId, name: personName }).catch(() => {})
+    }
+
+    // 4. Send direct DELETE requests to local server AND cloud server
+    try {
+      if (personId) {
+        await apiRequest('/staff/' + encodeURIComponent(personId), { method: 'DELETE' }).catch(async () => {
+          if (personName) {
+            await apiRequest('/staff/' + encodeURIComponent(personName), { method: 'DELETE' }).catch(() => {})
+          }
+        })
+      }
+    } catch {}
+
+    if (isDesktopApp()) {
+      try {
+        const cloudBase = cloudApiBase()
+        const cloudToken = await getCloudAuthToken(cloudBase, false).catch(() => null)
+        if (cloudBase && cloudToken) {
+          const deleteEndpoint = personId ? '/staff/' + encodeURIComponent(personId) : '/staff/' + encodeURIComponent(personName)
+          await fetch(cloudBase + deleteEndpoint, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + cloudToken },
+            signal: AbortSignal.timeout(15000)
+          }).catch(() => {})
+        }
+      } catch {}
+    }
+
+    // 5. Enqueue mutation with both staffId AND staffName for offline replay
+    enqueueMutation({ type: 'delete_staff', staffId: personId, staffName: personName })
     setPendingCount(getManagerQueue().length)
+
+    // 6. Clear assignedStaffId from any projects referencing this staff member
+    setProjects((currentProjects) => {
+      let changed = false
+      const updated = currentProjects.map((p) => {
+        if (p.assignedStaffId === personId || (personName && String(p.assignedStaffId || '').toLowerCase() === personName.toLowerCase())) {
+          changed = true
+          return { ...p, assignedStaffId: '', updatedAt: new Date().toISOString() }
+        }
+        return p
+      })
+      if (changed) {
+        saveCachedProjects(updated)
+      }
+      return updated
+    })
+
     syncAll()
+    if (isDesktopApp()) {
+      syncCloud(true)
+    } else {
+      debouncedCloudSync(1000)
+    }
   }
 
   const navigation = [
@@ -961,6 +1968,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      {mobileMenu && <div className="sidebar-backdrop" onClick={() => setMobileMenu(false)} aria-hidden="true" />}
       <aside className={'sidebar ' + (mobileMenu ? 'open' : '')}>
         <div className="brand"><span className="brand-mark">K</span><span>KRISHNA<span>DECOR</span></span><button className="mobile-close" onClick={() => setMobileMenu(false)}><X size={18} /></button></div>
         <div className="workspace-label">OWNER WORKSPACE</div>
@@ -986,34 +1994,93 @@ function App() {
           <div className="top-actions">
             <button
               type="button"
-              className={'sync-indicator-btn ' + syncState}
-              onClick={() => syncAll(true)}
-              title={syncState === 'synced' ? 'Online & synchronized (click to refresh)' : syncState === 'syncing' ? 'Synchronizing…' : 'Offline — click to retry sync'}
+              className={'sync-indicator-btn ' + (isDesktopApp() ? (cloudSyncState === 'syncing' ? 'syncing' : (cloudSyncState === 'offline' && cloudPendingCount > 0 ? 'offline' : 'synced')) : syncState)}
+              onClick={() => {
+                syncAll(true)
+                if (isDesktopApp()) syncCloud(true)
+              }}
+              title={isDesktopApp()
+                ? (cloudSyncState === 'synced' ? 'Local Hub active & Cloud synchronized' : cloudSyncState === 'syncing' ? 'Syncing with cloud…' : `Saved locally (${cloudPendingCount} queued for cloud)`)
+                : (syncState === 'synced' ? 'Online & synchronized (click to refresh)' : syncState === 'syncing' ? 'Synchronizing…' : 'Offline — click to retry sync')}
             >
-              <span className={'sync-dot ' + syncState} />
+              <span className={'sync-dot ' + (isDesktopApp() ? (cloudSyncState === 'offline' ? 'offline' : (cloudSyncState === 'syncing' ? 'syncing' : 'synced')) : syncState)} />
               <span>
-                {syncState === 'synced'
-                  ? 'Cloud Synced'
-                  : syncState === 'syncing'
-                  ? 'Syncing…'
-                  : pendingCount > 0
-                  ? `Offline (${pendingCount} pending)`
-                  : 'Offline (Local)'}
+                {isDesktopApp()
+                  ? (cloudSyncState === 'syncing'
+                    ? 'Syncing Cloud…'
+                    : cloudSyncState === 'offline'
+                    ? (cloudPendingCount > 0 ? `Local (${cloudPendingCount} pending cloud)` : 'Local (Cloud Offline)')
+                    : 'Local & Cloud Synced')
+                  : (syncState === 'synced'
+                    ? 'Cloud Synced'
+                    : syncState === 'syncing'
+                    ? 'Syncing…'
+                    : pendingCount > 0
+                    ? `Offline (${pendingCount} pending)`
+                    : 'Offline (Local)')}
               </span>
-              <RefreshCw size={12} className={syncState === 'syncing' ? 'spin-anim' : ''} />
+              <RefreshCw size={12} className={(syncState === 'syncing' || (isDesktopApp() && cloudSyncState === 'syncing')) ? 'spin-anim' : ''} />
             </button>
             <button className="search-button" onClick={() => { setNotificationsOpen(false); setSearchOpen(true) }}><Search size={17} /><span>Search</span><kbd>⌘ K</kbd></button>
             <div className="notification-wrap"><button className="icon-button notification" title="Notifications" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={() => { setSearchOpen(false); setNotificationsOpen((open) => !open) }}><Bell size={19} />{notifications.length ? <i /> : null}</button>{notificationsOpen && <NotificationPanel notifications={notifications} onSelect={(notification) => { selectProject(notification.projectId); setPage(notification.page); setNotificationsOpen(false) }} />}</div>
+            {typeof window !== 'undefined' && window.krishnaHub?.openBackupDirectory && (
+              <button
+                type="button"
+                className="icon-button"
+                title={backupConfig.configured ? `Open backup_krishna_decor (${backupConfig.path})` : 'Choose backup_krishna_decor location'}
+                onClick={async () => {
+                  if (backupConfig.configured) {
+                    window.krishnaHub.openBackupDirectory().catch(() => {})
+                  } else {
+                    const res = await window.krishnaHub.selectBackupDirectory()
+                    if (res && res.configured) {
+                      setBackupConfig({ configured: true, path: res.backupDirectory })
+                      setToast('Created backup_krishna_decor at: ' + res.backupDirectory)
+                    }
+                  }
+                }}
+              >
+                <FolderOpen size={18} />
+              </button>
+            )}
             <span className="avatar top-avatar">{session.user.name.slice(0, 2).toUpperCase()}</span>
           </div>
         </header>
+
+        {!backupConfig.configured && typeof window !== 'undefined' && window.krishnaHub && (
+          <aside className="backup-setup-banner">
+            <div className="backup-banner-message">
+              <HardDrive size={18} className="backup-banner-icon" />
+              <div>
+                <strong>Local Backup Setup:</strong> Choose a folder on your system where the main <code>backup_krishna_decor</code> folder will be created. Every project will have its own folder with <code>drafts</code> and <code>invoice</code> saved locally.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="button primary compact"
+              onClick={async () => {
+                try {
+                  const res = await window.krishnaHub.selectBackupDirectory()
+                  if (res && res.configured) {
+                    setBackupConfig({ configured: true, path: res.backupDirectory })
+                    setToast('Folder backup_krishna_decor created at: ' + res.backupDirectory)
+                  }
+                } catch {
+                  setToast('Could not set backup location.')
+                }
+              }}
+            >
+              Choose Location Now
+            </button>
+          </aside>
+        )}
         <section className="page-head">
           <div><p className="eyebrow">{project?.status || 'OWNER WORKSPACE'}</p><h1>{titles[page][0]}</h1><p className="subhead">{titles[page][1]}</p></div>
           <div className="page-actions">{page === 'quotations' && project ? <button className="button primary" onClick={() => makeQuotation(project, patchProject, setToast)}><Plus size={16} />New quotation</button> : null}</div>
         </section>
 
-        {page === 'team' ? <Team projects={projects} staff={staff} onCreateStaff={createStaffMember} onRemoveStaff={removeStaffMember} onRefresh={() => syncAll(true)} toast={setToast} /> : project ? <>
-          {page === 'overview' && <Overview project={project} onPage={setPage} onRefresh={() => syncAll(true)} onDeleteProject={deleteProject} patchProject={patchProject} toast={setToast} />}
+        {page === 'team' ? <Team projects={projects} staff={staff} onCreateStaff={createStaffMember} onRemoveStaff={removeStaffMember} onRefresh={() => { syncAll(true); if (isDesktopApp()) syncCloud(true); }} toast={setToast} /> : project ? <>
+          {page === 'overview' && <Overview project={project} onPage={setPage} onRefresh={() => { syncAll(true); if (isDesktopApp()) syncCloud(true); }} onDeleteProject={deleteProject} patchProject={patchProject} toast={setToast} />}
           {page === 'customer' && <Customer project={project} patchProject={patchProject} toast={setToast} />}
           {page === 'areas' && <Areas project={project} areaId={areaId} setAreaId={setAreaId} updateArea={updateArea} patchProject={patchProject} toast={setToast} />}
           {page === 'quotations' && <Quotations project={project} patchProject={patchProject} toast={setToast} />}
@@ -1021,6 +2088,51 @@ function App() {
           {page === 'payments' && <Payments project={project} patchProject={patchProject} toast={setToast} />}
         </> : <EmptyWorkspace onCreate={() => setShowCreate(true)} />}
       </main>
+
+      {/* 9:16 Smartphone Bottom Quick-Navigation Bar */}
+      <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
+        <button
+          type="button"
+          className={'mobile-nav-btn' + (page === 'overview' ? ' active' : '')}
+          onClick={() => { setPage('overview'); setMobileMenu(false) }}
+        >
+          <FolderKanban size={18} />
+          <span>Overview</span>
+        </button>
+        <button
+          type="button"
+          className={'mobile-nav-btn' + (page === 'areas' ? ' active' : '')}
+          onClick={() => { setPage('areas'); setMobileMenu(false) }}
+        >
+          <Ruler size={18} />
+          <span>Areas</span>
+        </button>
+        <button
+          type="button"
+          className={'mobile-nav-btn' + (page === 'quotations' ? ' active' : '')}
+          onClick={() => { setPage('quotations'); setMobileMenu(false) }}
+        >
+          <FileText size={18} />
+          <span>Quotes</span>
+          {project?.quotations?.length > 0 && <span className="mobile-badge">{project.quotations.length}</span>}
+        </button>
+        <button
+          type="button"
+          className={'mobile-nav-btn' + (page === 'invoice' ? ' active' : '')}
+          onClick={() => { setPage('invoice'); setMobileMenu(false) }}
+        >
+          <Receipt size={18} />
+          <span>Invoice</span>
+        </button>
+        <button
+          type="button"
+          className={'mobile-nav-btn' + (mobileMenu ? ' active' : '')}
+          onClick={() => setMobileMenu((m) => !m)}
+        >
+          <Menu size={18} />
+          <span>Menu</span>
+        </button>
+      </nav>
       {showCreate && <NewProjectModal onClose={() => setShowCreate(false)} onCreate={createProject} />}
       {searchOpen && <SearchDialog projects={projects} navigation={navigation} onClose={() => setSearchOpen(false)} onSelect={(result) => { if (result.type === 'project') selectProject(result.id); else setPage(result.id); setSearchOpen(false) }} />}
       {toast && <div className="toast"><CheckCircle2 size={17} />{toast}</div>}
@@ -1051,7 +2163,7 @@ function ConnectionSetup({ role, onConnected }) {
     event.preventDefault()
     connectWithUrl(address)
   }
-  return <main className="connection-screen"><section className="connection-card"><div className="auth-brand"><span className="brand-mark">K</span><span>KRISHNA<span>DECOR</span></span></div><p className="eyebrow">{role.toUpperCase()} APP SETUP</p><h1>Connect to your workspace</h1><p>The apps synchronize automatically with the 24/7 cloud backend. You can also specify a custom address below.</p><form onSubmit={connect}><button type="button" className="button secondary preset-cloud-btn" style={{ width: '100%', marginBottom: '14px', border: '1px dashed #2563b8', background: '#eef4fc', color: '#173e73', fontWeight: 'bold' }} onClick={() => { setAddress('https://krishna-decor-api.onrender.com/api'); connectWithUrl('https://krishna-decor-api.onrender.com/api'); }}>Connect to 24/7 Cloud (Render + Neon)</button><label>Custom Sync address<input value={address} placeholder="https://krishna-decor-api.onrender.com/api" autoCapitalize="none" autoCorrect="off" inputMode="url" onChange={(event) => setAddress(event.target.value)} /></label>{error && <p className="auth-error">{error}</p>}<button className="button primary auth-submit" disabled={testing}>{testing ? 'Checking connection…' : 'Save & Connect'}<ArrowUpRight size={16} /></button></form><small>Default: <code>https://krishna-decor-api.onrender.com/api</code></small></section></main>
+  return <main className="connection-screen"><section className="connection-card"><div className="auth-brand"><span className="brand-mark">K</span><span>KRISHNA<span>DECOR</span></span></div><p className="eyebrow">{role.toUpperCase()} APP SETUP</p><h1>Connect to your workspace</h1><p>The apps synchronize automatically with the 24/7 cloud backend. You can also specify a custom address below.</p><form onSubmit={connect}><button type="button" className="button secondary preset-cloud-btn" style={{ width: '100%', marginBottom: '14px', border: '1.5px dashed #4E8EA2', background: '#eef6fa', color: '#0A4174', fontWeight: 'bold' }} onClick={() => { setAddress('https://krishna-decor-api.onrender.com/api'); connectWithUrl('https://krishna-decor-api.onrender.com/api'); }}>Connect to 24/7 Cloud (Render + Neon)</button><label>Custom Sync address<input value={address} placeholder="https://krishna-decor-api.onrender.com/api" autoCapitalize="none" autoCorrect="off" inputMode="url" onChange={(event) => setAddress(event.target.value)} /></label>{error && <p className="auth-error">{error}</p>}<button className="button primary auth-submit" disabled={testing}>{testing ? 'Checking connection…' : 'Save & Connect'}<ArrowUpRight size={16} /></button></form><small>Default: <code>https://krishna-decor-api.onrender.com/api</code></small></section></main>
 }
 
 function AuthScreen({ onAuthenticated, onConfigure }) {
@@ -1060,6 +2172,7 @@ function AuthScreen({ onAuthenticated, onConfigure }) {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine)
   const currentServer = apiBase()
   const isCloud = currentServer.includes('krishna-decor-api.onrender.com')
 
@@ -1075,9 +2188,13 @@ function AuthScreen({ onAuthenticated, onConfigure }) {
       .then((result) => {
         setSetupRequired(result.setupRequired)
         setError('')
+        setIsOffline(false)
       })
-      .catch(() => {
-        setError('Cannot reach the Krishna Decor API. Start the api service, then refresh this page.')
+      .catch((err) => {
+        // When offline, do not permanently block manager login!
+        setIsOffline(true)
+        setSetupRequired(false)
+        setError('')
       })
       .finally(() => setChecking(false))
   }, [])
@@ -1089,9 +2206,12 @@ function AuthScreen({ onAuthenticated, onConfigure }) {
         .then((result) => {
           setSetupRequired(result.setupRequired)
           setError('')
+          setIsOffline(false)
         })
-        .catch(() => {})
-    }, 2500)
+        .catch(() => {
+          setIsOffline(true)
+        })
+    }, 4000)
     return () => clearInterval(timer)
   }, [checkHealth])
 
@@ -1099,19 +2219,184 @@ function AuthScreen({ onAuthenticated, onConfigure }) {
     event.preventDefault()
     setError('')
     setSubmitting(true)
+    const trimmedName = values.name.trim()
+
     try {
       const result = await apiRequest(setupRequired ? '/auth/bootstrap' : '/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ ...values, email: usernameAlias(values.name), role: 'manager' })
+        body: JSON.stringify({ ...values, name: trimmedName, email: usernameAlias(trimmedName), role: 'manager' })
       })
+      localStorage.setItem('krishna-decor-manager-last-profile', JSON.stringify({ name: trimmedName, session: result }))
+
+      if (isDesktopApp()) {
+        const cloudCreds = { name: trimmedName, email: usernameAlias(trimmedName), password: values.password, role: 'manager' }
+        localStorage.setItem('krishna-decor-cloud-creds', JSON.stringify(cloudCreds))
+        const cloudBase = cloudApiBase()
+        if (cloudBase) {
+          fetch(cloudBase + (setupRequired ? '/auth/bootstrap' : '/auth/login'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cloudCreds),
+            signal: AbortSignal.timeout(6000)
+          }).then((res) => res.json()).then((cloudRes) => {
+            if (cloudRes?.token) {
+              localStorage.setItem('krishna-decor-cloud-token', cloudRes.token)
+            }
+          }).catch(() => {})
+        }
+      }
+
       onAuthenticated(result)
     } catch (requestError) {
-      setError(requestError.message)
+      if (isNetworkError(requestError) || !navigator.onLine || isOffline) {
+        // Offline authentication support: let manager enter workspace without internet
+        try {
+          const cachedProfile = JSON.parse(localStorage.getItem('krishna-decor-manager-last-profile') || 'null')
+          if (cachedProfile && cachedProfile.name?.toLowerCase() === trimmedName.toLowerCase() && cachedProfile.session) {
+            onAuthenticated(cachedProfile.session)
+            return
+          }
+          const storedSession = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+          if (storedSession && storedSession.user?.name?.toLowerCase() === trimmedName.toLowerCase() && storedSession.token) {
+            onAuthenticated(storedSession)
+            return
+          }
+          // Default owner manager fallback for offline use
+          if (trimmedName.toLowerCase() === 'dinesh' || trimmedName.toLowerCase() === 'sohan' || !trimmedName || trimmedName.toLowerCase() === 'manager') {
+            const offlineSession = {
+              token: 'manager-offline-session-' + Date.now().toString(36),
+              user: {
+                id: '3c8d7d36-7fa6-4b1c-8526-179be4456a93',
+                name: trimmedName || 'Dinesh',
+                role: 'manager'
+              }
+            }
+            localStorage.setItem(SESSION_KEY, JSON.stringify(offlineSession))
+            localStorage.setItem('krishna-decor-manager-last-profile', JSON.stringify({ name: trimmedName || 'Dinesh', session: offlineSession }))
+            onAuthenticated(offlineSession)
+            return
+          }
+        } catch {}
+      }
+      setError(requestError.message || 'Login failed')
     } finally {
       setSubmitting(false)
     }
   }
-  return <main className="auth-screen"><section className="auth-panel"><div className="auth-brand"><span className="brand-mark">K</span><span>KRISHNA<span>DECOR</span></span></div>{setupRequired === null && !error ? <div className="auth-loading"><Clock3 size={22} /><p>Connecting to your workspace…</p></div> : <><p className="eyebrow">{setupRequired ? 'SECURE FIRST-TIME SETUP' : 'OWNER SIGN IN'}</p><h1>{setupRequired ? 'Create the owner account' : 'Welcome back'}</h1><p className="auth-copy">{setupRequired ? 'There are no pre-created accounts or project records. Set the owner user name and password for this installation.' : 'Sign in to manage your live Krishna Decor projects.'}</p><div className="server-status-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', margin: '0 0 16px', background: '#eef4fc', border: '1px solid #cddcf0', borderRadius: '99px', fontSize: '11px', color: '#244b7d' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 0 2px rgba(16,185,129,.25)' }}></span><span>Sync: {isCloud ? '24/7 Cloud (Render + Neon)' : 'Custom Server'}</span><code style={{ fontFamily: 'Consolas, monospace', fontSize: '10px', color: '#173e73' }}>{currentServer}</code></div><form onSubmit={submit} className="auth-form" autoComplete="off"><Field label="User name" name="manager-login-name" autoComplete="off" value={values.name} onChange={(event) => setValues({ ...values, name: event.target.value })} /><Field label="Password" name="manager-login-password" type="password" minLength="8" value={values.password} autoComplete={setupRequired ? 'new-password' : 'current-password'} onChange={(event) => setValues({ ...values, password: event.target.value })} />{error && <div className="auth-error-box"><p className="auth-error">{error}</p>{(!isCloud || /reach|connect|failed|offline/i.test(error)) && <button type="button" className="button secondary" style={{ marginTop: '0.5rem', width: '100%', background: '#f0fdf4', borderColor: '#86efac', color: '#166534', fontWeight: 'bold' }} onClick={resetToCloud}>Reset to 24/7 Cloud Server</button>}<button type="button" className="button secondary" style={{ marginTop: '0.5rem', width: '100%' }} disabled={checking} onClick={checkHealth}>{checking ? 'Connecting…' : 'Retry connection'}</button></div>}<button className="button primary auth-submit" disabled={submitting || setupRequired === null}>{submitting ? 'Please wait…' : setupRequired ? 'Create owner account' : 'Sign in'}<ArrowUpRight size={16} /></button></form>{onConfigure && <button className="connection-link" onClick={onConfigure}>Use a different data server</button>}</>}</section><aside className="auth-aside"><p className="eyebrow light">KRISHNA DECOR / OWNER DESK</p><h2>Project management that carries the detail.</h2><p>Measurements, materials, approvals and payment tracking live in one secure workspace.</p><div className="auth-points"><span><CheckCircle2 size={16} />No seeded customer or financial data</span><span><CheckCircle2 size={16} />Role-limited field staff access</span><span><CheckCircle2 size={16} />Persistent shared project records</span></div></aside></main>
+  return (
+    <main className="auth-screen">
+      <section className="auth-panel">
+        <div className="auth-brand">
+          <span className="brand-mark">K</span>
+          <span>KRISHNA<span>DECOR</span></span>
+        </div>
+        {setupRequired === null && !error && !isOffline ? (
+          <div className="auth-loading">
+            <Clock3 size={22} />
+            <p>Connecting to your workspace…</p>
+          </div>
+        ) : (
+          <>
+            <p className="eyebrow">{setupRequired ? 'SECURE FIRST-TIME SETUP' : 'OWNER SIGN IN'}</p>
+            <h1>{setupRequired ? 'Create the owner account' : 'Welcome back'}</h1>
+            <p className="auth-copy">
+              {setupRequired
+                ? 'There are no pre-created accounts or project records. Set the owner user name and password for this installation.'
+                : 'Sign in to manage your live Krishna Decor projects.'}
+            </p>
+            <div
+              className="server-status-badge"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                margin: '0 0 16px',
+                background: isOffline ? '#fff7ed' : '#eef6fa',
+                border: '1px solid ' + (isOffline ? '#fed7aa' : '#BDD8E9'),
+                borderRadius: '99px',
+                fontSize: '11px',
+                color: isOffline ? '#9a3412' : '#001D39'
+              }}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: isOffline ? '#f97316' : '#7BBDE8',
+                  boxShadow: isOffline ? '0 0 0 2px rgba(249,115,22,.35)' : '0 0 0 2px rgba(123,189,232,.35)'
+                }}
+              />
+              <span>{isOffline ? 'Offline Mode · Working Locally (Syncs when connected)' : (isCloud ? 'Sync: 24/7 Cloud (Render + Neon)' : 'Sync: Custom Server')}</span>
+              {!isOffline && <code style={{ fontFamily: 'Consolas, monospace', fontSize: '10px', color: '#0A4174' }}>{currentServer}</code>}
+            </div>
+            <form onSubmit={submit} className="auth-form" autoComplete="off">
+              <Field
+                label="User name"
+                name="manager-login-name"
+                autoComplete="off"
+                value={values.name}
+                onChange={(event) => setValues({ ...values, name: event.target.value })}
+              />
+              <Field
+                label="Password"
+                name="manager-login-password"
+                type="password"
+                minLength="8"
+                value={values.password}
+                autoComplete={setupRequired ? 'new-password' : 'current-password'}
+                onChange={(event) => setValues({ ...values, password: event.target.value })}
+              />
+              {error && (
+                <div className="auth-error-box">
+                  <p className="auth-error">{error}</p>
+                  {(!isCloud || /reach|connect|failed|offline/i.test(error)) && (
+                    <button
+                      type="button"
+                      className="button secondary"
+                      style={{ marginTop: '0.5rem', width: '100%', background: '#eef6fa', borderColor: '#BDD8E9', color: '#0A4174', fontWeight: 'bold' }}
+                      onClick={resetToCloud}
+                    >
+                      Reset to 24/7 Cloud Server
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="button secondary"
+                    style={{ marginTop: '0.5rem', width: '100%' }}
+                    disabled={checking}
+                    onClick={checkHealth}
+                  >
+                    {checking ? 'Connecting…' : 'Retry connection'}
+                  </button>
+                </div>
+              )}
+              <button className="button primary auth-submit" disabled={submitting}>
+                {submitting ? 'Please wait…' : setupRequired ? 'Create owner account' : (isOffline ? 'Sign in (Offline)' : 'Sign in')}
+                <ArrowUpRight size={16} />
+              </button>
+            </form>
+            {onConfigure && (
+              <button className="connection-link" onClick={onConfigure}>
+                Use a different data server
+              </button>
+            )}
+          </>
+        )}
+      </section>
+      <aside className="auth-aside">
+        <p className="eyebrow light">KRISHNA DECOR / OWNER DESK</p>
+        <h2 style={{ padding: '24px 0', color: '#fffdf8' }}>Project management that carries the detail.</h2>
+        <p>Measurements, materials, approvals and payment tracking live in one secure workspace.</p>
+        <div className="auth-points">
+          <span><CheckCircle2 size={16} />Works totally offline on device</span>
+          <span><CheckCircle2 size={16} />Role-limited field staff access</span>
+          <span><CheckCircle2 size={16} />Automatic cloud sync when internet connects</span>
+        </div>
+      </aside>
+    </main>
+  )
 }
 
 function LoadingWorkspace() {
@@ -1176,7 +2461,8 @@ function Team({ projects, staff, onCreateStaff, onRemoveStaff, onRefresh, toast 
     }
   }
   const activity = projects.flatMap((project) => (project.activityLog || []).map((entry) => ({ ...entry, projectName: project.name }))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  return <><div className="team-layout"><section className="panel team-form"><div className="section-heading"><div><p className="eyebrow">FIELD ACCESS</p><h3>Add a staff member</h3></div><Users size={20} /></div><p className="team-copy">Every staff member can select any manager-created project. Each field submission is automatically attributed to their user name.</p><form onSubmit={createStaff} className="team-inputs" autoComplete="off"><Field label="Staff member name" name="new-staff-name" autoComplete="off" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /><Field label="Temporary password" name="new-staff-password" autoComplete="new-password" type="password" minLength="8" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />{error && <p className="auth-error">{error}</p>}<button className="button primary" disabled={submitting}>{submitting ? 'Creating…' : 'Create staff account'}<ArrowUpRight size={16} /></button></form></section><section className="panel team-list"><div className="section-heading"><div><p className="eyebrow">STAFF ACCOUNTABILITY</p><h3>Field activity log</h3></div><div className="activity-actions"><span className="tag">{activity.length} records</span><button className="text-button" onClick={onRefresh}>Refresh activity</button></div></div>{activity.length ? <table className="simple-table audit-table"><thead><tr><th>Staff member</th><th>Project</th><th>Action</th><th>Recorded</th></tr></thead><tbody>{activity.map((entry) => <tr key={entry.id}><td><strong>{entry.actorName}</strong></td><td>{entry.projectName}</td><td><strong>{entry.action}</strong><small>{entry.detail}</small></td><td>{new Date(entry.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td></tr>)}</tbody></table> : <Empty label="Staff submissions will appear here with the user name and time recorded." />}</section><section className="panel staff-directory"><div className="section-heading"><div><p className="eyebrow">STAFF DIRECTORY</p><h3>Active accounts</h3></div></div>{staff.length ? <div className="directory-grid">{staff.map((person) => <div className="staff-card" key={person.id}><span>{person.name.slice(0, 1).toUpperCase()}</span><div><strong>{person.name}</strong><small>Name and password sign-in</small></div><button type="button" className="button remove-staff" disabled={removingStaffId === person.id} onClick={() => setStaffToRemove(person)}><Trash2 size={14} />{removingStaffId === person.id ? 'Removing...' : 'Remove'}</button></div>)}</div> : <Empty label="No staff accounts have been created." />}</section></div>{staffToRemove && <ConfirmRemovalModal person={staffToRemove} busy={removingStaffId === staffToRemove.id} onClose={() => setStaffToRemove(null)} onConfirm={() => removeStaff(staffToRemove)} />}</>
+  const activeStaff = filterDeletedStaff(staff)
+  return <><div className="team-layout"><section className="panel team-form"><div className="section-heading"><div><p className="eyebrow">FIELD ACCESS</p><h3>Add a staff member</h3></div><Users size={20} /></div><p className="team-copy">Every staff member can select any manager-created project. Each field submission is automatically attributed to their user name.</p><form onSubmit={createStaff} className="team-inputs" autoComplete="off"><Field label="Staff member name" name="new-staff-name" autoComplete="off" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /><Field label="Temporary password" name="new-staff-password" autoComplete="new-password" type="password" minLength="8" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />{error && <p className="auth-error">{error}</p>}<button className="button primary" disabled={submitting}>{submitting ? 'Creating…' : 'Create staff account'}<ArrowUpRight size={16} /></button></form></section><section className="panel team-list"><div className="section-heading"><div><p className="eyebrow">STAFF ACCOUNTABILITY</p><h3>Field activity log</h3></div><div className="activity-actions"><span className="tag">{activity.length} records</span><button className="text-button" onClick={onRefresh}>Refresh activity</button></div></div>{activity.length ? <table className="simple-table audit-table"><thead><tr><th>Staff member</th><th>Project</th><th>Action</th><th>Recorded</th></tr></thead><tbody>{activity.map((entry) => <tr key={entry.id}><td><strong>{entry.actorName}</strong></td><td>{entry.projectName}</td><td><strong>{entry.action}</strong><small>{entry.detail}</small></td><td>{new Date(entry.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td></tr>)}</tbody></table> : <Empty label="Staff submissions will appear here with the user name and time recorded." />}</section><section className="panel staff-directory"><div className="section-heading"><div><p className="eyebrow">STAFF DIRECTORY</p><h3>Active accounts</h3></div></div>{activeStaff.length ? <div className="directory-grid">{activeStaff.map((person) => <div className="staff-card" key={person.id}><span>{person.name.slice(0, 1).toUpperCase()}</span><div><strong>{person.name}</strong><small>Name and password sign-in</small></div><button type="button" className="button remove-staff" disabled={removingStaffId === person.id} onClick={() => setStaffToRemove(person)}><Trash2 size={14} />{removingStaffId === person.id ? 'Removing...' : 'Remove'}</button></div>)}</div> : <Empty label="No staff accounts have been created." />}</section></div>{staffToRemove && <ConfirmRemovalModal person={staffToRemove} busy={removingStaffId === staffToRemove.id} onClose={() => setStaffToRemove(null)} onConfirm={() => removeStaff(staffToRemove)} />}</>
 }
 
 function ConfirmRemovalModal({ person, busy, onClose, onConfirm }) {
@@ -1187,7 +2473,6 @@ function Overview({ project, onPage, onRefresh, onDeleteProject, patchProject, t
   const currentQuote = project.quotations[project.quotations.length - 1]
   const totals = getTotals(currentQuote?.items || [])
   const paid = project.payments.reduce((sum, payment) => sum + (payment.state === 'Received' ? payment.amount : 0), 0)
-  const progress = project.areas.length ? Math.min(100, 25 + project.areas.length * 20 + (currentQuote ? 30 : 0)) : 12
   const staffDrafts = project.staffDrafts || []
   const savedDrafts = staffDrafts
   const [editingDraft, setEditingDraft] = useState(null)
@@ -1198,6 +2483,7 @@ function Overview({ project, onPage, onRefresh, onDeleteProject, patchProject, t
     if (cleanTarget) {
       apiRequest('/staff/projects/' + project.id + '/submissions/' + encodeURIComponent(cleanTarget), { method: 'DELETE' }).catch(() => {})
       enqueueMutation({ type: 'delete_submission', projectId: project.id, submissionId: cleanTarget })
+      if (isDesktopApp()) syncCloud()
     }
 
     const remaining = (project.staffDrafts || []).filter((s) => {
@@ -1226,8 +2512,10 @@ function Overview({ project, onPage, onRefresh, onDeleteProject, patchProject, t
   return <div className="overview-grid">
     <section className="hero-card">
       <div className="hero-glow" />
-      <div className="hero-content"><p className="eyebrow light">PROJECT HEALTH</p><h2>{project.name}</h2><p>{project.customer.location || 'Add the customer’s location and visit details to start the workflow.'}</p>
-        <div className="hero-progress"><div><span>Project completion</span><strong>{progress}%</strong></div><div className="progress-track"><i style={{ width: progress + '%' }} /></div></div>
+      <div className="hero-content">
+        <p className="eyebrow light">PROJECT OVERVIEW</p>
+        <h2>{project.name}</h2>
+        <p>{project.customer.location || 'Add the customer’s location and visit details to start the workflow.'}</p>
       </div>
       <div className="hero-meta"><div><MapPin size={16} /><span><small>Location</small><b>{project.customer.location || '—'}</b></span></div></div>
       <button className="button danger-button overview-delete" onClick={onDeleteProject}><Trash2 size={15} />Delete project</button>
@@ -1246,7 +2534,16 @@ function Overview({ project, onPage, onRefresh, onDeleteProject, patchProject, t
       </div>
     </section>
     <section className="panel recent-panel"><div className="panel-title"><div><p className="eyebrow">AREAS</p><h3>Latest measurements</h3></div><button className="text-button" onClick={() => onPage('areas')}>Manage areas <ArrowUpRight size={15} /></button></div>
-      {project.areas.length ? <div className="area-preview-grid">{project.areas.slice(0, 4).map((area, index) => <div className={'area-preview tone-' + (index % 3)} key={area.id}><span>{String(index + 1).padStart(2, '0')}</span><h4>{area.name}</h4><p>{area.width} × {area.height} in</p><small>{area.products?.length || 0} materials</small></div>)}</div> : <Empty label="No areas have been selected yet." action="Add an area" onClick={() => onPage('areas')} />}</section>
+      {project.areas.length ? <div className="area-preview-grid">{project.areas.slice(0, 4).map((area, index) => {
+        const sets = getAreaMeasurementSets(area, project.staffDrafts)
+        const { totalSqFt: cov, validSets } = calculateMeasurementSetsCoverage(sets, area.unit)
+        const dimLabel = validSets > 1
+          ? `${validSets} measurement sets · ${quantity(cov)} sq ft`
+          : (sets.length === 1 && sets[0].width && sets[0].height
+            ? `${sets[0].width} × ${sets[0].height} ${sets[0].unit || 'in'}`
+            : (area.width && area.height ? `${area.width} × ${area.height} in` : 'Dimensions needed'))
+        return <div className={'area-preview tone-' + (index % 3)} key={area.id}><span>{String(index + 1).padStart(2, '0')}</span><h4>{area.name}</h4><p>{dimLabel}</p><small>{area.products?.length || 0} materials</small></div>
+      })}</div> : <Empty label="No areas have been selected yet." action="Add an area" onClick={() => onPage('areas')} />}</section>
     <section className="panel staff-updates-panel"><div className="panel-title"><div><p className="eyebrow">STAFF UPDATES</p><h3>Saved field measurements and product selections</h3></div><div className="staff-update-actions"><span className="tag">{savedDrafts.length} saved</span><button className="text-button" onClick={onRefresh}>Refresh updates</button></div></div>
       {staffDrafts.length ? <div className="staff-update-list">{staffDrafts.slice().reverse().map((draft) => <article className="staff-update" key={draft.id}><span className="staff-update-avatar">{(draft.staffName || 'S').slice(0, 1).toUpperCase()}</span><div><strong>{draft.area} / {draft.product}</strong><p>{quantity(draft.width)} × {quantity(draft.height)} {draft.unit} {draft.notes ? '· ' + draft.notes : ''}</p><small>Saved by {draft.staffName || 'Staff'} · {new Date(draft.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</small></div><div className="staff-update-side"><em>{draft.status === 'Pending review' ? 'Saved' : draft.status}</em>{patchProject && <div className="row-action-buttons"><button type="button" className="icon-button" title="Edit field entry" aria-label="Edit field entry" onClick={() => setEditingDraft(staffSubmissionLine(draft))}><Pencil size={14} /></button><button type="button" className="icon-button danger" title="Delete field entry" aria-label="Delete field entry" onClick={() => removeDraft(draft.id, draft.area + ' / ' + draft.product, draft)}><Trash2 size={14} /></button></div>}</div></article>)}</div> : <Empty label="Saved staff cart items will appear here automatically." />}
     </section>
@@ -1325,37 +2622,80 @@ function WorkflowStep({ done, step, title, description, action, onClick }) {
 }
 
 function Customer({ project, patchProject, toast }) {
-  const customer = project.customer
-  const fileRef = useRef()
-  const setCustomer = (key, value) => patchProject({ customer: { ...customer, [key]: value }, status: project.status === 'Needs site details' ? 'Site details in progress' : project.status })
-  const loadPhoto = (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setCustomer('sitePhoto', reader.result)
-    reader.readAsDataURL(file)
+  const [form, setForm] = useState(project.customer || {})
+  const saveTimeoutRef = useRef(null)
+
+  useEffect(() => {
+    setForm(project.customer || {})
+  }, [project.id])
+
+  const flushSave = (currentForm) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    patchProject({
+      customer: currentForm,
+      status: project.status === 'Needs site details' ? 'Site details in progress' : project.status
+    })
   }
-  return <div className="customer-layout">
-    <section className="panel form-panel"><div className="section-heading"><div><p className="eyebrow">CONTACT</p><h3>Customer & site</h3></div><span className="autosave"><CheckCircle2 size={14} />Saved automatically</span></div>
-      <div className="form-grid">
-        <Field label="Customer name" value={customer.name} placeholder="Full name" onChange={(e) => setCustomer('name', e.target.value)} />
-        <Field label="Date of visit" type="date" value={customer.visitDate} onChange={(e) => setCustomer('visitDate', e.target.value)} />
-        <Field label="Site location" value={customer.location} placeholder="City, State" onChange={(e) => setCustomer('location', e.target.value)} />
-        <Field label="Reference" value={customer.reference} placeholder="Architect, designer or referral" onChange={(e) => setCustomer('reference', e.target.value)} />
-        <label className="field full"><span>Site address</span><textarea rows="4" value={customer.address} placeholder="Complete project address" onChange={(e) => setCustomer('address', e.target.value)} /></label>
-      </div>
-      <div className="form-footer"><p>These details appear on the quotation and invoice records.</p><button className="button primary" onClick={() => toast('Customer details saved.')}>Save details</button></div>
-    </section>
-    <section className="panel photo-panel"><div className="section-heading"><div><p className="eyebrow">SITE PIC</p><h3>Reference image</h3></div>{customer.sitePhoto && <button className="icon-button" onClick={() => setCustomer('sitePhoto', '')}><Trash2 size={16} /></button>}</div>
-      {customer.sitePhoto ? <img className="site-image" src={customer.sitePhoto} alt="Project site" /> : <button className="upload-zone" onClick={() => fileRef.current?.click()}><span><ImageIcon size={27} /></span><strong>Upload site picture</strong><small>JPG, PNG or WEBP</small></button>}
-      <input ref={fileRef} className="hidden" type="file" accept="image/*" onChange={loadPhoto} />
-      {customer.sitePhoto && <button className="button secondary full-button" onClick={() => fileRef.current?.click()}><Upload size={16} />Replace image</button>}
-    </section>
-  </div>
+
+  const setCustomerField = (key, value) => {
+    const nextForm = { ...form, [key]: value }
+    setForm(nextForm)
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => {
+      flushSave(nextForm)
+    }, 400)
+  }
+
+  const handleBlur = () => {
+    flushSave(form)
+  }
+
+  const handleExplicitSave = () => {
+    flushSave(form)
+    toast('Customer details saved.')
+  }
+
+  return (
+    <div className="customer-layout">
+      <section className="panel form-panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">CONTACT</p>
+            <h3>Customer & site</h3>
+          </div>
+          <span className="autosave"><CheckCircle2 size={14} />Saved automatically</span>
+        </div>
+        <div className="form-grid">
+          <Field label="Customer name" value={form.name || ''} placeholder="Full name" onChange={(e) => setCustomerField('name', e.target.value)} onBlur={handleBlur} />
+          <Field label="Date of visit" type="date" value={form.visitDate || ''} onChange={(e) => setCustomerField('visitDate', e.target.value)} onBlur={handleBlur} />
+          <Field label="Site location" value={form.location || ''} placeholder="City, State" onChange={(e) => setCustomerField('location', e.target.value)} onBlur={handleBlur} />
+          <Field label="Reference" value={form.reference || ''} placeholder="Architect, designer or referral" onChange={(e) => setCustomerField('reference', e.target.value)} onBlur={handleBlur} />
+          <label className="field full"><span>Site address</span><textarea rows="4" value={form.address || ''} placeholder="Complete project address" onChange={(e) => setCustomerField('address', e.target.value)} onBlur={handleBlur} /></label>
+        </div>
+        <div className="form-footer">
+          <p>These details appear on the quotation and invoice records.</p>
+          <button className="button primary" onClick={handleExplicitSave}>Save details</button>
+        </div>
+      </section>
+    </div>
+  )
 }
 
-function Field({ label, ...props }) {
-  return <label className="field"><span>{label}</span><input {...props} /></label>
+function Field({ label, onFocus, ...props }) {
+  const isNumber = props.type === 'number'
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <input
+        {...(isNumber ? { inputMode: 'decimal', onWheel: (e) => e.target.blur() } : {})}
+        onFocus={(e) => {
+          if (isNumber) e.target.select?.()
+          onFocus?.(e)
+        }}
+        {...props}
+      />
+    </label>
+  )
 }
 
 function RenameAreaModal({ area, onClose, onSave }) {
@@ -1372,6 +2712,29 @@ function RenameAreaModal({ area, onClose, onSave }) {
         <h2>Rename area</h2>
         <p>Update the name for this space. Associated materials and staff entries will update automatically.</p>
         <Field label="Area name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <div className="modal-actions">
+          <button type="button" className="button secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="button primary">Save name</button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+function RenameMeasurementModal({ areaId, measurementSet, onClose, onSave }) {
+  const [label, setLabel] = useState(measurementSet?.label || '')
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (label.trim()) onSave(areaId, measurementSet.id, label.trim())
+  }
+  return (
+    <div className="modal-layer" onMouseDown={onClose}>
+      <form className="modal" onSubmit={handleSubmit} onMouseDown={(e) => e.stopPropagation()}>
+        <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
+        <span className="modal-kicker">MEASUREMENT SET</span>
+        <h2>Rename measurement</h2>
+        <p>Update the name for this measurement (e.g. "Main Window", "French Door", "Balcony"). Associated materials and calculations will update automatically.</p>
+        <Field label="Measurement name" value={label} onChange={(e) => setLabel(e.target.value)} autoFocus required />
         <div className="modal-actions">
           <button type="button" className="button secondary" onClick={onClose}>Cancel</button>
           <button type="submit" className="button primary">Save name</button>
@@ -1409,17 +2772,18 @@ function EditMaterialModal({ material, areas = [], onClose, onSave }) {
     return ''
   })
   const [clampType, setClampType] = useState(material.clampType || '')
+  const [minimumArea, setMinimumArea] = useState(material.minimumArea || 11)
   const [quantity, setQuantity] = useState(material.quantity ?? 0)
-  const [quantityOverridden, setQuantityOverridden] = useState(Boolean(material.quantityOverridden))
+  const [quantityOverridden, setQuantityOverridden] = useState(Boolean(material.quantityOverridden || isManualQuantityMaterial(material.product)))
   const [unitPrice, setUnitPrice] = useState(material.unitPrice ?? 0)
   const [gst, setGst] = useState(material.gst || 18)
   const [note, setNote] = useState(material.notes || material.note || '')
 
   const isStaff = Boolean(material.isStaff)
-  const isCurtainSelected =
-    CURTAIN_SYSTEMS.some((sys) => sys.name === product) ||
-    ALL_CURTAIN_COMPONENT_NAMES.has(product) ||
-    /curtain|sheer|lining|eyelet|eylet|ripple|american|valance|valence/i.test(product || '')
+  const isManual = isManualQuantityMaterial(product)
+  const isHardware = isHardwareProduct(product)
+  const isBlind = isSquareFootBlind(product) || product.toLowerCase().includes('roman')
+  const isCurtainSelected = isCurtainProduct(product)
 
   // Effective dimensions in inches
   const effectiveWidthInches = toInches(width, unit) || (currentArea ? Number(currentArea.width) : 0)
@@ -1428,8 +2792,10 @@ function EditMaterialModal({ material, areas = [], onClose, onSave }) {
   const prevProductRef = useRef(product)
 
   useEffect(() => {
+    if (isManual) return
     const prodObj = findProductDef(product) || MATERIAL_PRODUCTS.find((p) => p.name === product) || { name: product, gst: 18, formula: 'standard' }
-    if (effectiveWidthInches > 0 && effectiveHeightInches > 0) {
+    if (effectiveWidthInches > 0 && (effectiveHeightInches > 0 || prodObj.formula === 'valance' || isStitchingPanelProduct(product) || isHardware)) {
+      prodObj.minimumArea = minimumArea
       const calc = calculateProduct(prodObj, effectiveWidthInches, effectiveHeightInches)
       const productChanged = prevProductRef.current !== product
       if (productChanged || !quantityOverridden) {
@@ -1442,20 +2808,39 @@ function EditMaterialModal({ material, areas = [], onClose, onSave }) {
         }
       }
     }
-  }, [product, effectiveWidthInches, effectiveHeightInches, quantityOverridden])
+  }, [product, effectiveWidthInches, effectiveHeightInches, minimumArea, quantityOverridden, isManual, isHardware])
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    const wVal = Number(width) > 0 ? Number(width) : 0
+    const hVal = Number(height) > 0 ? Number(height) : 0
+    const wInches = wVal > 0 ? Number(toInches(wVal, unit).toFixed(2)) : (Number(material.width) || 0)
+    const hInches = hVal > 0 ? Number(toInches(hVal, unit).toFixed(2)) : (Number(material.height) || 0)
+    const measurementSets = (wVal > 0 && hVal > 0)
+      ? [{ id: uid('mset'), label: 'Measurement 1', width: wVal, height: hVal, unit }]
+      : (Array.isArray(material.measurements) ? material.measurements : [])
+    const measureSummary = formatItemMeasurementSummary({
+      measurements: measurementSets,
+      width: wInches,
+      height: hInches,
+      unit,
+      variantLabel: material.variantLabel
+    })
+
     onSave({
       ...material,
       area: (areaName || '').trim(),
       product,
-      width: Number(width) > 0 ? Number(width) : (Number(material.width) || 0),
-      height: Number(height) > 0 ? Number(height) : (Number(material.height) || 0),
+      width: wInches,
+      height: hInches,
       unit,
       clampType: isCurtainSelected ? clampType : '',
+      minimumArea: isBlind ? (Number(minimumArea) || 11) : undefined,
       quantity: Number(Number(quantity || 0).toFixed(2)),
-      quantityOverridden,
+      quantityOverridden: isManual ? true : quantityOverridden,
+      isManualQuantity: isManual,
+      measurements: measurementSets,
+      measurementSummary: measureSummary,
       unitPrice: Number(unitPrice) || 0,
       gst: Number(gst) || 18,
       note
@@ -1464,179 +2849,207 @@ function EditMaterialModal({ material, areas = [], onClose, onSave }) {
 
   return (
     <div className="modal-layer" onMouseDown={onClose}>
-      <form className="modal" onSubmit={handleSubmit} onMouseDown={(e) => e.stopPropagation()}>
+      <form className="modal edit-material-modal" onSubmit={handleSubmit} onMouseDown={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
-        <span className="modal-kicker">{isStaff ? 'FIELD MEASUREMENT' : 'MATERIAL ITEM'} · {areaName || material.area}</span>
-        <h2>Edit {isStaff ? 'staff entry' : 'material'}</h2>
-        <p>Update specifications, dimensions, quantity, MRP and tax rate. Changes are saved to this project workspace.</p>
-
-        <label className="field" style={{ marginTop: '14px' }}>
-          <span>Assigned Area / Space</span>
-          {areas.length > 0 && !isCustomArea ? (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <select
-                value={areaName}
-                onChange={(e) => {
-                  if (e.target.value === '__new__') {
-                    setIsCustomArea(true)
-                    setAreaName('')
-                  } else {
-                    setAreaName(e.target.value)
-                  }
-                }}
-                style={{ flex: 1 }}
-              >
-                {!areas.some((a) => a.name.toLowerCase() === (areaName || '').toLowerCase()) && areaName && (
-                  <option value={areaName}>{areaName} (Current)</option>
-                )}
-                {areas.map((a) => (
-                  <option key={a.id} value={a.name}>{a.name}</option>
-                ))}
-                <option value="__new__">+ Enter new area name…</option>
-              </select>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                required
-                value={areaName}
-                placeholder="e.g. Master Bedroom, Balcony"
-                onChange={(e) => setAreaName(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              {areas.length > 0 && (
-                <button
-                  type="button"
-                  className="button secondary small"
-                  onClick={() => {
-                    setIsCustomArea(false)
-                    setAreaName(areas[0]?.name || '')
-                  }}
-                >
-                  Choose existing
-                </button>
-              )}
-            </div>
-          )}
-        </label>
-
-        <label className="field" style={{ marginTop: '14px' }}>
-          <span>Product / material</span>
-          <select value={product} onChange={(e) => setProduct(e.target.value)}>
-            {!EDITABLE_MODAL_PRODUCTS.includes(product) && product && (
-              <option value={product}>{product}</option>
-            )}
-            {EDITABLE_MODAL_PRODUCTS.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </label>
-
-        {(isStaff || isCurtainSelected || Boolean(width || height || currentArea?.width)) && (
-          <div className="measure-row" style={{ marginTop: '14px' }}>
-            <label className="field" style={{ flex: 1 }}>
-              <span>Width ({unit})</span>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={width}
-                placeholder="Width"
-                onChange={(e) => {
-                  setWidth(e.target.value)
-                  setQuantityOverridden(false)
-                }}
-              />
-            </label>
-            <span style={{ alignSelf: 'center', marginTop: '18px', fontWeight: 'bold' }}>×</span>
-            <label className="field" style={{ flex: 1 }}>
-              <span>Height ({unit})</span>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                value={height}
-                placeholder="Height"
-                onChange={(e) => {
-                  setHeight(e.target.value)
-                  setQuantityOverridden(false)
-                }}
-              />
-            </label>
-            <label className="field" style={{ width: '130px' }}>
-              <span>Unit</span>
-              <select
-                value={unit}
-                onChange={(e) => {
-                  setUnit(e.target.value)
-                  setQuantityOverridden(false)
-                }}
-              >
-                <option value="in">Inches</option>
-                <option value="ft">Feet</option>
-                <option value="m">Metres</option>
-                <option value="cm">Centimetres</option>
-              </select>
-            </label>
-          </div>
-        )}
-
-        {isCurtainSelected && (
-          <label className="field" style={{ marginTop: '14px' }}>
-            <span>Mounting clamp <small>(optional)</small></span>
-            <select value={clampType} onChange={(e) => setClampType(e.target.value)}>
-              <option value="">Select a clamp type (Optional)</option>
-              {CLAMP_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </label>
-        )}
-
-        <div className="form-grid" style={{ marginTop: '14px', gap: '12px' }}>
-          <Field
-            label={`Calculated Quantity (${unitLabel(product)})`}
-            type="number"
-            step="0.01"
-            min="0"
-            value={quantity}
-            onChange={(e) => {
-              setQuantity(e.target.value)
-              setQuantityOverridden(true)
-            }}
-          />
-          <Field
-            label="Unit MRP (₹)"
-            type="number"
-            step="1"
-            min="0"
-            value={unitPrice}
-            onChange={(e) => setUnitPrice(e.target.value)}
-          />
+        <div className="modal-header">
+          <span className="modal-kicker">
+            {isManual ? 'OPTIONAL MEASUREMENTS · MANUAL QUANTITY' : isStaff ? 'FIELD MEASUREMENT' : 'MATERIAL ITEM'} · {areaName || material.area}
+          </span>
+          <h2>Edit {isStaff ? 'staff entry' : 'material'}</h2>
+          <p>Update specifications, dimensions, quantity, MRP and tax rate. Changes are saved to this project workspace.</p>
         </div>
 
-        {['eyelet', 'ripple'].includes(findProductDef(product).formula) && (
-          <div style={{ marginTop: '6px', fontSize: '12px', color: '#1d4ed8', fontWeight: 600 }}>
-            Formula: ⌈W / 20⌉ × ((H + 15) / 39) = {Number(quantity).toFixed(2)} m
+        <div className="modal-scroll-body">
+          <label className="field" style={{ marginTop: '4px' }}>
+            <span>Assigned Area / Space</span>
+            {areas.length > 0 && !isCustomArea ? (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  value={areaName}
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') {
+                      setIsCustomArea(true)
+                      setAreaName('')
+                    } else {
+                      setAreaName(e.target.value)
+                    }
+                  }}
+                  style={{ flex: 1 }}
+                >
+                  {!areas.some((a) => a.name.toLowerCase() === (areaName || '').toLowerCase()) && areaName && (
+                    <option value={areaName}>{areaName} (Current)</option>
+                  )}
+                  {areas.map((a) => (
+                    <option key={a.id} value={a.name}>{a.name}</option>
+                  ))}
+                  <option value="__new__">+ Enter new area name…</option>
+                </select>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  required
+                  value={areaName}
+                  placeholder="e.g. Master Bedroom, Balcony"
+                  onChange={(e) => setAreaName(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                {areas.length > 0 && (
+                  <button
+                    type="button"
+                    className="button secondary small"
+                    onClick={() => {
+                      setIsCustomArea(false)
+                      setAreaName(areas[0]?.name || '')
+                    }}
+                  >
+                    Choose existing
+                  </button>
+                )}
+              </div>
+            )}
+          </label>
+
+          <label className="field" style={{ marginTop: '14px' }}>
+            <span>Product / material</span>
+            <select value={product} onChange={(e) => setProduct(e.target.value)}>
+              {!EDITABLE_MODAL_PRODUCTS.includes(product) && product && (
+                <option value={product}>{product}</option>
+              )}
+              {EDITABLE_MODAL_PRODUCTS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </label>
+
+          {(isStaff || isCurtainSelected || isManual || Boolean(width || height || currentArea?.width)) && (
+            <div className="measure-row" style={{ marginTop: '14px' }}>
+              <label className="field" style={{ flex: 1 }}>
+                <span>Width ({unit}){isManual ? ' (Optional)' : ''}</span>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  inputMode="decimal"
+                  required={!isManual}
+                  value={width}
+                  placeholder={isManual ? 'Optional' : 'Width'}
+                  onFocus={(e) => e.target.select?.()}
+                  onWheel={(e) => e.target.blur()}
+                  onChange={(e) => {
+                    setWidth(e.target.value)
+                    if (!isManual) setQuantityOverridden(false)
+                  }}
+                />
+              </label>
+              <span style={{ alignSelf: 'center', marginTop: '18px', fontWeight: 'bold' }}>×</span>
+              <label className="field" style={{ flex: 1 }}>
+                <span>Height ({unit}){isManual ? ' (Optional)' : isHardware ? ' (Not needed)' : ''}</span>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  inputMode="decimal"
+                  required={!isManual && !isHardware}
+                  value={height}
+                  placeholder={isManual ? 'Optional' : isHardware ? 'Not needed' : 'Height'}
+                  onFocus={(e) => e.target.select?.()}
+                  onWheel={(e) => e.target.blur()}
+                  onChange={(e) => {
+                    setHeight(e.target.value)
+                    if (!isManual) setQuantityOverridden(false)
+                  }}
+                />
+              </label>
+              <label className="field" style={{ width: '130px' }}>
+                <span>Unit</span>
+                <select
+                  value={unit}
+                  onChange={(e) => {
+                    setUnit(e.target.value)
+                    if (!isManual) setQuantityOverridden(false)
+                  }}
+                >
+                  <option value="in">Inches</option>
+                  <option value="ft">Feet</option>
+                  <option value="m">Metres</option>
+                  <option value="cm">Centimetres</option>
+                </select>
+              </label>
+            </div>
+          )}
+
+          {isBlind && (
+            <label className="field" style={{ marginTop: '14px' }}>
+              <span>Minimum chargeable area</span>
+              <select
+                value={minimumArea}
+                onChange={(e) => {
+                  setMinimumArea(e.target.value)
+                  setQuantityOverridden(false)
+                }}
+              >
+                <option value="11">11 sq ft</option>
+                <option value="16.5">16.5 sq ft</option>
+              </select>
+            </label>
+          )}
+
+          {isCurtainSelected && (
+            <label className="field" style={{ marginTop: '14px' }}>
+              <span>Mounting clamp <small>(optional)</small></span>
+              <select value={clampType} onChange={(e) => setClampType(e.target.value)}>
+                <option value="">Select a clamp type (Optional)</option>
+                {CLAMP_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
+          )}
+
+          <div className="form-grid" style={{ marginTop: '14px', gap: '12px' }}>
+            <Field
+              label={isManual ? `Quantity (${unitLabel(product)}) *` : `Calculated Quantity (${unitLabel(product)})`}
+              type="number"
+              step="any"
+              min="0"
+              value={quantity}
+              onChange={(e) => {
+                setQuantity(e.target.value)
+                setQuantityOverridden(true)
+              }}
+            />
+            <Field
+              label="Unit MRP (₹)"
+              type="number"
+              step="1"
+              min="0"
+              value={unitPrice}
+              onChange={(e) => setUnitPrice(e.target.value)}
+            />
           </div>
-        )}
 
-        <label className="field" style={{ marginTop: '14px' }}>
-          <span>GST Rate</span>
-          <select value={gst} onChange={(e) => setGst(e.target.value)}>
-            <option value="5">5% GST</option>
-            <option value="18">18% GST</option>
-          </select>
-        </label>
+          {['eyelet', 'ripple'].includes(findProductDef(product).formula) && (
+            <div style={{ marginTop: '6px', fontSize: '12px', color: '#0A4174', fontWeight: 600 }}>
+              Formula: ⌈W / 20⌉ × ((H + 15) / 39) = {Number(quantity).toFixed(2)} m
+            </div>
+          )}
 
-        <label className="field" style={{ marginTop: '14px' }}>
-          <span>Notes / specification</span>
-          <input
-            value={note}
-            placeholder="e.g. Dimensions, custom make notes"
-            onChange={(e) => setNote(e.target.value)}
-          />
-        </label>
+          <label className="field" style={{ marginTop: '14px' }}>
+            <span>GST Rate</span>
+            <select value={gst} onChange={(e) => setGst(e.target.value)}>
+              <option value="5">5% GST</option>
+              <option value="18">18% GST</option>
+            </select>
+          </label>
+
+          <label className="field" style={{ marginTop: '14px' }}>
+            <span>Notes / specification</span>
+            <input
+              value={note}
+              placeholder="e.g. Dimensions, custom make notes"
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </label>
+        </div>
 
         <div className="modal-actions">
           <button type="button" className="button secondary" onClick={onClose}>Cancel</button>
@@ -1647,87 +3060,206 @@ function EditMaterialModal({ material, areas = [], onClose, onSave }) {
   )
 }
 
-function AreaDimensionDrawer({ area, onChangeDimension, onChangeUnit, staffEntriesCount, onSyncToStaff, onClose }) {
-  const [localWidth, setLocalWidth] = useState(() => {
-    const val = fromInches(area.width, area.unit)
-    return val ? (area.unit === 'in' ? String(Math.round(val)) : String(Number(val.toFixed(2)))) : ''
+function AreaDimensionDrawer({ area, onSaveAreaMeasurements, onChangeDimension, onChangeUnit, staffEntriesCount, onSyncToStaff, onRenameMeasurement, onClose }) {
+  const [sets, setSets] = useState(() => {
+    const existing = getAreaMeasurementSets(area)
+    return existing.length > 0 ? existing : [{ id: uid('mset'), label: 'Measurement 1', width: '', height: '', unit: area.unit || 'in' }]
   })
-  const [localHeight, setLocalHeight] = useState(() => {
-    const val = fromInches(area.height, area.unit)
-    return val ? (area.unit === 'in' ? String(Math.round(val)) : String(Number(val.toFixed(2)))) : ''
-  })
+  const saveTimeoutRef = useRef(null)
 
   useEffect(() => {
-    const valW = fromInches(area.width, area.unit)
-    const formattedW = valW ? (area.unit === 'in' ? String(Math.round(valW)) : String(Number(valW.toFixed(2)))) : ''
-    if (Number(localWidth) !== valW && formattedW !== localWidth) {
-      setLocalWidth(formattedW)
+    const current = getAreaMeasurementSets(area)
+    if (current.length > 0) {
+      setSets(current)
     }
-    const valH = fromInches(area.height, area.unit)
-    const formattedH = valH ? (area.unit === 'in' ? String(Math.round(valH)) : String(Number(valH.toFixed(2)))) : ''
-    if (Number(localHeight) !== valH && formattedH !== localHeight) {
-      setLocalHeight(formattedH)
-    }
-  }, [area.width, area.height, area.unit])
+  }, [area.id])
 
-  const handleWidthChange = (val) => {
-    setLocalWidth(val)
-    onChangeDimension(area.id, 'width', val)
+  const flushSave = (next) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    const valid = next.find((s) => Number(s.width) > 0 && Number(s.height) > 0) || next[0]
+    const u = valid?.unit || area.unit || 'in'
+    const wInches = valid?.width && Number(valid.width) > 0 ? toInches(valid.width, u) : (area.width || 0)
+    const hInches = valid?.height && Number(valid.height) > 0 ? toInches(valid.height, u) : (area.height || 0)
+    if (onSaveAreaMeasurements) {
+      onSaveAreaMeasurements(area.id, next, Number(wInches.toFixed(2)), Number(hInches.toFixed(2)), u)
+    } else {
+      onChangeDimension?.(area.id, 'width', valid?.width || 0)
+      onChangeDimension?.(area.id, 'height', valid?.height || 0)
+      if (u !== area.unit) onChangeUnit?.(area.id, u)
+    }
   }
-  const handleHeightChange = (val) => {
-    setLocalHeight(val)
-    onChangeDimension(area.id, 'height', val)
+
+  const handleUpdateSet = (id, field, value) => {
+    const next = sets.map((s) => s.id === id ? { ...s, [field]: value } : s)
+    setSets(next)
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => {
+      flushSave(next)
+    }, 500)
   }
+
+  const handleAddSet = () => {
+    const newId = uid('mset')
+    const newSet = { id: newId, label: 'Measurement ' + (sets.length + 1), width: '', height: '', unit: area.unit || 'in' }
+    const next = [...sets, newSet]
+    setSets(next)
+    flushSave(next)
+    setTimeout(() => {
+      const el = document.getElementById('mset-width-' + newId)
+      if (el) {
+        el.focus()
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    }, 60)
+  }
+
+  const handleRemoveSet = (id) => {
+    if (sets.length <= 1) return
+    const next = sets.filter((s) => s.id !== id)
+    setSets(next)
+    flushSave(next)
+  }
+
+  const { totalSqFt, validSets } = calculateMeasurementSetsCoverage(sets, area.unit)
 
   return (
     <div className="area-dimensions-drawer">
       <div className="area-dimensions-drawer-head">
-        <strong>Edit measurements for {area.name}</strong>
-        <span>Dimensions stored in inches for precision calculations</span>
+        <div>
+          <strong>Edit measurements for {area.name}</strong>
+          <span style={{ display: 'block', marginTop: '2px' }}>
+            Store one or multiple measurement sets (windows, walls, openings) for this area
+          </span>
+        </div>
+        <button
+          type="button"
+          className="button secondary small"
+          onClick={handleAddSet}
+          title="Add another measurement set for this area (retains existing)"
+        >
+          <Plus size={13} />Add measurement set
+        </button>
       </div>
-      <div className="measurement-grid" style={{ marginTop: '6px' }}>
-        <label className="measure-field">
-          <span>Width</span>
-          <div>
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={localWidth}
-              placeholder="0"
-              onChange={(e) => handleWidthChange(e.target.value)}
-            />
-            <small>{area.unit}</small>
-          </div>
-        </label>
-        <span className="times">×</span>
-        <label className="measure-field">
-          <span>Height</span>
-          <div>
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={localHeight}
-              placeholder="0"
-              onChange={(e) => handleHeightChange(e.target.value)}
-            />
-            <small>{area.unit}</small>
-          </div>
-        </label>
-        <label className="unit-field">
-          <span>Unit</span>
-          <select value={area.unit} onChange={(e) => onChangeUnit(area.id, e.target.value)}>
-            <option value="in">Inches</option>
-            <option value="ft">Feet</option>
-            <option value="m">Metres</option>
-            <option value="cm">Centimetres</option>
-          </select>
-        </label>
+
+      <div className="msets-container">
+        {sets.map((set, index) => {
+          const sqft = (Number(set.width) > 0 && Number(set.height) > 0)
+            ? ((toInches(set.width, set.unit || 'in') / 12) * (toInches(set.height, set.unit || 'in') / 12)).toFixed(2)
+            : null
+          return (
+            <div key={set.id || index} id={`mset-row-${set.id}`} className="mset-row">
+              <span className="measure-chip-num" style={{ fontSize: '11px', fontWeight: 700 }}>#{index + 1}</span>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <input
+                  className="mset-label-input"
+                  value={set.label || `Measurement ${index + 1}`}
+                  placeholder={`Set ${index + 1}`}
+                  title="Rename this measurement"
+                  onChange={(e) => handleUpdateSet(set.id, 'label', e.target.value)}
+                  onBlur={() => flushSave(sets)}
+                />
+                <button
+                  type="button"
+                  className="area-action-btn"
+                  title={`Rename "${set.label || `Measurement ${index + 1}`}"`}
+                  style={{ height: '38px', width: '38px' }}
+                  onClick={() => onRenameMeasurement?.({ areaId: area.id, set })}
+                >
+                  <Pencil size={13} />
+                </button>
+              </div>
+              <div className="mset-inputs">
+                <div className="mset-field">
+                  <input
+                    id={`mset-width-${set.id}`}
+                    type="number"
+                    min="0"
+                    step="any"
+                    inputMode="decimal"
+                    value={set.width ?? ''}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select?.()}
+                    onWheel={(e) => e.target.blur()}
+                    onChange={(e) => handleUpdateSet(set.id, 'width', e.target.value)}
+                    onBlur={() => flushSave(sets)}
+                  />
+                  <small>{set.unit || area.unit || 'in'}</small>
+                </div>
+                <span className="times" style={{ padding: 0, fontSize: '16px' }}>×</span>
+                <div className="mset-field">
+                  <input
+                    id={`mset-height-${set.id}`}
+                    type="number"
+                    min="0"
+                    step="any"
+                    inputMode="decimal"
+                    value={set.height ?? ''}
+                    placeholder="0"
+                    onFocus={(e) => e.target.select?.()}
+                    onWheel={(e) => e.target.blur()}
+                    onChange={(e) => handleUpdateSet(set.id, 'height', e.target.value)}
+                    onBlur={() => flushSave(sets)}
+                  />
+                  <small>{set.unit || area.unit || 'in'}</small>
+                </div>
+                <select
+                  className="mset-unit-select"
+                  value={set.unit || area.unit || 'in'}
+                  onChange={(e) => handleUpdateSet(set.id, 'unit', e.target.value)}
+                  onBlur={() => flushSave(sets)}
+                >
+                  <option value="in">Inches</option>
+                  <option value="ft">Feet</option>
+                  <option value="m">Metres</option>
+                  <option value="cm">Centimetres</option>
+                </select>
+                {sqft && (
+                  <span className="mset-sqft-tag">
+                    {sqft} sq ft
+                  </span>
+                )}
+                {sets.length > 1 && (
+                  <button
+                    type="button"
+                    className="area-action-btn danger"
+                    title="Remove this measurement set"
+                    onClick={() => handleRemoveSet(set.id)}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+        <button
+          type="button"
+          className="button secondary add-set-bottom-btn"
+          onClick={handleAddSet}
+          style={{
+            width: '100%',
+            marginTop: '6px',
+            padding: '9px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            border: '1px dashed #b7ccb5',
+            background: '#f4f8f3',
+            color: '#28522d',
+            fontWeight: 600,
+            fontSize: '12px',
+            borderRadius: '7px',
+            cursor: 'pointer'
+          }}
+        >
+          <Plus size={14} /> Add new measurement set for {area.name} (retains existing #{sets.length})
+        </button>
       </div>
+
       <div className="dimensions-drawer-footer">
         <span className="dimensions-note">
-          Live coverage: <b>{quantity(area.width)} in × {quantity(area.height)} in</b> ({quantity(((area.width / 12) * (area.height / 12)).toFixed(2))} sq ft)
+          Live coverage: <b>{validSets} measurement {validSets === 1 ? 'set' : 'sets'}</b> · Total <b>{quantity(totalSqFt)} sq ft</b>
         </span>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {staffEntriesCount > 0 && (
@@ -1756,14 +3288,26 @@ function AreaDimensionDrawer({ area, onChangeDimension, onChangeUnit, staffEntri
 function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) {
   const [viewFilter, setViewFilter] = useState('all') // 'all' by default, or specific area id
   const [calcAreaId, setCalcAreaId] = useState(() => areaId || project.areas[0]?.id || '')
+  const [calcVariantId, setCalcVariantId] = useState('') // specific measurement set id of the active area
   const [showCalculator, setShowCalculator] = useState(true)
   const [editingDimensionsId, setEditingDimensionsId] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [areaChoice, setAreaChoice] = useState('')
   const [customArea, setCustomArea] = useState('')
   const [renamingArea, setRenamingArea] = useState(null)
+  const [renamingMeasurement, setRenamingMeasurement] = useState(null)
   const [editingMaterial, setEditingMaterial] = useState(null)
-  const [draft, setDraft] = useState({ product: PRODUCTS[0].name, price: 0, fabricPrice: 650, liningPrice: 290, romanType: 'Premium', minimumArea: 11, clampType: '' })
+  const [draft, setDraft] = useState({
+    product: PRODUCTS[0].name,
+    price: 0,
+    fabricPrice: 650,
+    liningPrice: 290,
+    romanType: 'Premium',
+    minimumArea: 11,
+    clampType: '',
+    manualQuantity: '',
+    itemMeasurements: [{ id: uid('mset'), label: 'Measurement 1', width: '', height: '', unit: 'in' }]
+  })
 
   // Keep calcAreaId valid if areas change
   useEffect(() => {
@@ -1773,8 +3317,218 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
   }, [project.areas, calcAreaId])
 
   const targetCalcArea = project.areas.find((a) => a.id === calcAreaId) || project.areas[0]
+  const targetAreaSets = useMemo(() => getAreaMeasurementSets(targetCalcArea, project.staffDrafts), [targetCalcArea, project.staffDrafts])
+
+  const selectedVariant = useMemo(() => {
+    if (!targetCalcArea || targetAreaSets.length === 0) return null
+    const found = targetAreaSets.find((s) => String(s.id) === String(calcVariantId))
+    return found || targetAreaSets[0] || null
+  }, [targetCalcArea, targetAreaSets, calcVariantId])
+
+  // Automatically keep calcVariantId synced to a valid measurement set of the active area
+  useEffect(() => {
+    if (targetAreaSets.length > 0 && !targetAreaSets.some((s) => String(s.id) === String(calcVariantId))) {
+      setCalcVariantId(targetAreaSets[0].id)
+    }
+  }, [targetAreaSets, calcVariantId])
+
+  const effectiveCalcWidth = selectedVariant
+    ? (Number(selectedVariant.width) > 0 ? toInches(selectedVariant.width, selectedVariant.unit || targetCalcArea?.unit || 'in') : 0)
+    : (targetCalcArea?.width || 0)
+
+  const effectiveCalcHeight = selectedVariant
+    ? (Number(selectedVariant.height) > 0 ? toInches(selectedVariant.height, selectedVariant.unit || targetCalcArea?.unit || 'in') : 0)
+    : (targetCalcArea?.height || 0)
+
+  const effectiveCalcUnit = selectedVariant?.unit || targetCalcArea?.unit || 'in'
+
+  const handleRenameMeasurement = (targetAreaId, setId, newLabel) => {
+    const targetArea = project.areas.find(a => a.id === targetAreaId)
+    if (!targetArea) return
+    const currentSets = getAreaMeasurementSets(targetArea, project.staffDrafts)
+    const oldSet = currentSets.find(s => s.id === setId)
+    const oldLabel = oldSet?.label || ''
+
+    const nextSets = currentSets.map(s => s.id === setId ? { ...s, label: newLabel } : s)
+
+    const updatedProducts = (targetArea.products || []).map((p) => {
+      const isMatch = (p.measurementSetId && p.measurementSetId === setId) ||
+        (oldLabel && (p.variantLabel || '').toLowerCase() === oldLabel.toLowerCase())
+      if (!isMatch) return p
+
+      const vLabel = newLabel
+      let nextNote = p.note || ''
+      if (oldLabel && nextNote.startsWith(oldLabel + ':')) {
+        nextNote = vLabel + ':' + nextNote.slice(oldLabel.length + 1)
+      }
+      const mSummary = formatItemMeasurementSummary({
+        width: p.width,
+        height: p.height,
+        unit: p.unit || targetArea.unit || 'in',
+        variantLabel: vLabel
+      })
+      return {
+        ...p,
+        measurementSetId: setId,
+        variantLabel: vLabel,
+        note: nextNote,
+        measurementSummary: mSummary
+      }
+    })
+
+    const nextAreas = project.areas.map(a => a.id === targetAreaId ? {
+      ...a,
+      measurementSets: nextSets,
+      products: updatedProducts
+    } : a)
+
+    patchProject({ areas: nextAreas })
+    setRenamingMeasurement(null)
+    toast(`Measurement renamed to "${newLabel}".`)
+  }
+
+  const handleSaveAreaMeasurements = (targetId, nextSets, primaryWInches, primaryHInches, unit) => {
+    const targetArea = project.areas.find(a => a.id === targetId)
+    if (!targetArea) return
+    const updatedProducts = (targetArea.products || []).map((p) => {
+      if (isManualQuantityMaterial(p.product) || p.isManualQuantity || p.quantityOverridden) return p
+      if (Array.isArray(p.measurements) && p.measurements.length > 1) return p
+
+      // Match product to its assigned measurement set
+      const matchingSet = p.measurementSetId
+        ? nextSets.find(s => s.id === p.measurementSetId)
+        : (p.variantLabel
+            ? nextSets.find(s => (s.label || '').toLowerCase() === p.variantLabel.toLowerCase())
+            : nextSets[0])
+
+      if (!matchingSet) return p
+
+      const vLabel = matchingSet.label || p.variantLabel || ''
+      const prodObj = findProductDef(p.product) || MATERIAL_PRODUCTS.find((x) => x.name === p.product) || { name: p.product, gst: p.gst, formula: 'standard' }
+
+      // If matching set lacks positive dimensions (and product requires height), update label at least:
+      if (!Number(matchingSet.width) || (!Number(matchingSet.height) && prodObj.formula !== 'valance')) {
+        return {
+          ...p,
+          measurementSetId: matchingSet.id,
+          variantLabel: vLabel,
+          measurementSummary: formatItemMeasurementSummary({ width: p.width, height: p.height, unit: p.unit || targetArea.unit || 'in', variantLabel: vLabel })
+        }
+      }
+
+      const itemW = toInches(matchingSet.width, matchingSet.unit || unit)
+      const itemH = toInches(matchingSet.height, matchingSet.unit || unit)
+      const itemUnit = matchingSet.unit || unit || targetArea.unit || p.unit || 'in'
+      const calc = calculateProduct(prodObj, itemW, itemH)
+      const lineNote = vLabel ? `${vLabel}: ${calc.note}` : calc.note
+      const mSummary = formatItemMeasurementSummary({ width: itemW, height: itemH, unit: itemUnit, variantLabel: vLabel })
+      return {
+        ...p,
+        width: itemW,
+        height: itemH,
+        unit: itemUnit,
+        measurementSetId: matchingSet.id,
+        variantLabel: vLabel,
+        quantity: Number(Number(calc.quantity || 0).toFixed(2)),
+        note: lineNote,
+        measurementSummary: mSummary
+      }
+    })
+    const nextAreas = project.areas.map(a => a.id === targetId ? {
+      ...a,
+      measurementSets: nextSets,
+      width: primaryWInches,
+      height: primaryHInches,
+      unit: unit || a.unit || 'in',
+      products: updatedProducts
+    } : a)
+    patchProject({ areas: nextAreas })
+  }
+
+  const handleAddNewMeasurementSet = (targetAreaId) => {
+    const targetArea = project.areas.find(a => a.id === targetAreaId)
+    if (!targetArea) return
+    const currentSets = getAreaMeasurementSets(targetArea, project.staffDrafts)
+
+    let nextSets = []
+    let newSetId = ''
+    if (currentSets.length === 0) {
+      newSetId = uid('mset')
+      nextSets = [{
+        id: newSetId,
+        label: 'Measurement 1',
+        width: '',
+        height: '',
+        unit: targetArea.unit || 'in'
+      }]
+    } else {
+      const retainedSets = currentSets.map((s, idx) => ({
+        ...s,
+        id: s.id || uid('mset'),
+        label: s.label || `Measurement ${idx + 1}`
+      }))
+      newSetId = uid('mset')
+      const newSet = {
+        id: newSetId,
+        label: `Measurement ${retainedSets.length + 1}`,
+        width: '',
+        height: '',
+        unit: targetArea.unit || 'in'
+      }
+      nextSets = [...retainedSets, newSet]
+    }
+
+    const primary = nextSets.find(s => Number(s.width) > 0 && Number(s.height) > 0) || nextSets[0]
+    const u = primary.unit || targetArea.unit || 'in'
+    const primaryWInches = primary.width && Number(primary.width) > 0 ? toInches(primary.width, u) : (targetArea.width || 0)
+    const primaryHInches = primary.height && Number(primary.height) > 0 ? toInches(primary.height, u) : (targetArea.height || 0)
+
+    handleSaveAreaMeasurements(targetArea.id, nextSets, Number(primaryWInches.toFixed(2)), Number(primaryHInches.toFixed(2)), u)
+    setEditingDimensionsId(targetArea.id)
+    setCalcAreaId(targetArea.id)
+    setCalcVariantId(newSetId)
+    setAreaId?.(targetArea.id)
+    toast(nextSets.length > 1
+      ? `Added measurement set #${nextSets.length} for ${targetArea.name}. Existing sets retained.`
+      : `Ready to enter measurements for ${targetArea.name}.`)
+    setTimeout(() => {
+      const el = document.getElementById('mset-width-' + newSetId)
+      if (el) {
+        el.focus()
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    }, 120)
+  }
+
+  const handleTargetSelectionChange = (newAreaId, newVariantId) => {
+    if (newVariantId === '__new_set__') {
+      handleAddNewMeasurementSet(newAreaId)
+      return
+    }
+    setCalcAreaId(newAreaId)
+    setAreaId?.(newAreaId)
+    const targetA = project.areas.find((a) => a.id === newAreaId)
+    if (!targetA) return
+    const sets = getAreaMeasurementSets(targetA, project.staffDrafts)
+    const chosenVariantId = (newVariantId && newVariantId !== 'default') ? newVariantId : (sets[0]?.id || '')
+    setCalcVariantId(chosenVariantId)
+    const v = sets.find((s) => String(s.id) === String(chosenVariantId)) || sets[0]
+    if (v && (Number(v.width) > 0 || Number(v.height) > 0)) {
+      setDraft((prev) => ({
+        ...prev,
+        itemMeasurements: [{
+          id: uid('mset'),
+          label: v.label || 'Measurement 1',
+          width: v.width,
+          height: v.height,
+          unit: v.unit || targetA.unit || 'in'
+        }]
+      }))
+    }
+  }
+
   const selectedProduct = PRODUCTS.find((item) => item.name === draft.product) || PRODUCTS[0]
-  const preview = targetCalcArea ? calculateProduct(selectedProduct, targetCalcArea.width, targetCalcArea.height, draft) : null
+  const preview = targetCalcArea ? calculateProduct(selectedProduct, effectiveCalcWidth, effectiveCalcHeight, draft) : null
 
   const addArea = (nameInput, initialWidth, initialHeight, initialUnit) => {
     const chosenName = (nameInput || areaChoice || customArea || '').trim()
@@ -1786,12 +3540,20 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
     const unit = initialUnit || 'in'
     const widthInInches = initialWidth !== undefined ? toInches(initialWidth, unit) : 0
     const heightInInches = initialHeight !== undefined ? toInches(initialHeight, unit) : 0
+    const initialSets = (Number(widthInInches.toFixed(2)) > 0 || Number(heightInInches.toFixed(2)) > 0) ? [{
+      id: uid('mset'),
+      label: 'Measurement 1',
+      width: unit === 'in' ? Math.round(fromInches(widthInInches, unit)) : Number(fromInches(widthInInches, unit).toFixed(2)),
+      height: unit === 'in' ? Math.round(fromInches(heightInInches, unit)) : Number(fromInches(heightInInches, unit).toFixed(2)),
+      unit
+    }] : []
     const newArea = {
       id: uid('area'),
       name: chosenName,
       width: Number(widthInInches.toFixed(2)) || 0,
       height: Number(heightInInches.toFixed(2)) || 0,
       unit,
+      measurementSets: initialSets,
       products: []
     }
     patchProject({ areas: [...project.areas, newArea], status: 'Measurements in progress' })
@@ -1856,6 +3618,7 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
   }
 
   const changeUnit = (targetId, unit) => updateArea(targetId, { unit })
+
   const changeDimension = (targetId, key, value) => {
     const targetArea = project.areas.find(a => a.id === targetId)
     if (!targetArea) return
@@ -1864,8 +3627,14 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
     const newH = key === 'height' ? newInches : (targetArea.height || 0)
 
     const updatedProducts = (targetArea.products || []).map((p) => {
+      if (isManualQuantityMaterial(p.product) || p.isManualQuantity || p.quantityOverridden) return p
+      if (Array.isArray(p.measurements) && p.measurements.length > 1) return p
+      if (p.measurementSetId && targetArea.measurementSets && targetArea.measurementSets.length > 1) {
+        const primarySetId = targetArea.measurementSets[0]?.id
+        if (p.measurementSetId !== primarySetId) return p
+      }
       const prodObj = findProductDef(p.product) || MATERIAL_PRODUCTS.find((x) => x.name === p.product) || { name: p.product, gst: p.gst, formula: 'standard' }
-      const calc = calculateProduct(prodObj, newW, newH)
+      const calc = calculateProduct(prodObj, newW, newH, { minimumArea: p.minimumArea })
       return {
         ...p,
         width: newW,
@@ -1882,7 +3651,7 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
       if ((draft.area || '').toLowerCase() === cleanAreaName) {
         staffUpdated = true
         const prodObj = findProductDef(draft.product) || MATERIAL_PRODUCTS.find((p) => p.name === draft.product) || { name: draft.product, gst: 18, formula: 'standard' }
-        const calc = calculateProduct(prodObj, newW, newH)
+        const calc = calculateProduct(prodObj, newW, newH, { minimumArea: draft.minimumArea })
         const unit = targetArea.unit || draft.unit || 'in'
         return {
           ...draft,
@@ -1912,7 +3681,7 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
         const wVal = Number(fromInches(wIn, unit).toFixed(2))
         const hVal = Number(fromInches(hIn, unit).toFixed(2))
         const prodObj = findProductDef(draft.product) || MATERIAL_PRODUCTS.find((p) => p.name === draft.product) || { name: draft.product, gst: 18, formula: 'standard' }
-        const calculated = calculateProduct(prodObj, wIn, hIn)
+        const calculated = calculateProduct(prodObj, wIn, hIn, { minimumArea: draft.minimumArea })
         return {
           ...draft,
           width: wVal,
@@ -1932,51 +3701,112 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
 
   const addMaterial = () => {
     if (!targetCalcArea) { toast('Please add or select an area first.'); return }
-    if (!targetCalcArea.width || !targetCalcArea.height) {
+    const isManual = isManualQuantityMaterial(selectedProduct.name)
+    const isStitching = isStitchingPanelProduct(selectedProduct.name)
+    const isHardware = isHardwareProduct(selectedProduct.name)
+    if (!isManual && !isStitching && !isHardware && (!effectiveCalcWidth || !effectiveCalcHeight)) {
       toast(`Add width and height for ${targetCalcArea.name} before calculating a material.`)
       setEditingDimensionsId(targetCalcArea.id)
       return
     }
-    const curtainSetId = selectedProduct.curtainSystem ? uid('curtain-set') : ''
-    const items = selectedProduct.curtainSystem
-      ? selectedProduct.curtainSystem.products.map(([name, gst, formula]) => {
-        const component = { name, gst, formula: formula || 'standard' }
-        const calculated = calculateProduct(component, targetCalcArea.width, targetCalcArea.height, draft)
-        return {
-          id: uid('line'),
-          area: targetCalcArea.name,
-          product: component.name,
-          width: targetCalcArea.width,
-          height: targetCalcArea.height,
-          unit: targetCalcArea.unit || 'in',
-          quantity: calculated.quantity,
-          unitPrice: calculated.unitPrice,
-          gst: component.gst,
-          note: calculated.note,
-          curtainSetId,
-          curtainSystem: selectedProduct.curtainSystem.id,
-          clampType: draft.clampType || ''
-        }
+    if ((isStitching || isHardware) && !effectiveCalcWidth) {
+      toast(`Add width for ${targetCalcArea.name} before calculating ${selectedProduct.name}.`)
+      setEditingDimensionsId(targetCalcArea.id)
+      return
+    }
+
+    if (isManual) {
+      if (draft.manualQuantity === undefined || draft.manualQuantity === '' || Number(draft.manualQuantity) <= 0) {
+        toast(`Please enter a valid quantity for ${selectedProduct.name}.`)
+        return
+      }
+      const validItemSets = (draft.itemMeasurements || []).filter(m => Number(m.width) > 0 && Number(m.height) > 0)
+      const primaryW = validItemSets[0]?.width ? toInches(validItemSets[0].width, validItemSets[0].unit || effectiveCalcUnit) : effectiveCalcWidth
+      const primaryH = validItemSets[0]?.height ? toInches(validItemSets[0].height, validItemSets[0].unit || effectiveCalcUnit) : effectiveCalcHeight
+      const primaryUnit = validItemSets[0]?.unit || effectiveCalcUnit
+      const measureSummary = formatItemMeasurementSummary({ measurements: validItemSets, width: primaryW, height: primaryH, unit: primaryUnit })
+      const itemNote = selectedVariant?.label ? (draft.note ? `${selectedVariant.label}; ${draft.note}` : selectedVariant.label) : (draft.note || '')
+
+      const manualItem = {
+        id: uid('line'),
+        area: targetCalcArea.name,
+        product: selectedProduct.name,
+        width: primaryW,
+        height: primaryH,
+        unit: primaryUnit,
+        measurements: validItemSets,
+        measurementSummary: measureSummary,
+        quantity: Number(Number(draft.manualQuantity).toFixed(2)),
+        quantityOverridden: true,
+        isManualQuantity: true,
+        unitPrice: Number(draft.price) || 0,
+        gst: selectedProduct.gst,
+        note: itemNote,
+        variantLabel: selectedVariant?.label || ''
+      }
+      updateArea(targetCalcArea.id, { products: [...(targetCalcArea.products || []), manualItem] })
+      toast(`${selectedProduct.name} added to ${targetCalcArea.name}${selectedVariant?.label ? ` (${selectedVariant.label})` : ''}.`)
+      setDraft({
+        ...draft,
+        manualQuantity: '',
+        itemMeasurements: [{ id: uid('mset'), label: 'Measurement 1', width: '', height: '', unit: targetCalcArea.unit || 'in' }]
       })
-      : (() => {
-        const calculated = calculateProduct(selectedProduct, targetCalcArea.width, targetCalcArea.height, draft)
-        return [{
-          id: uid('line'),
-          area: targetCalcArea.name,
-          product: selectedProduct.name,
-          width: targetCalcArea.width,
-          height: targetCalcArea.height,
-          unit: targetCalcArea.unit || 'in',
-          quantity: calculated.quantity,
-          unitPrice: calculated.unitPrice,
-          gst: selectedProduct.gst,
-          note: calculated.note
-        }]
-      })()
-    updateArea(targetCalcArea.id, { products: [...(targetCalcArea.products || []), ...items] })
-    toast(selectedProduct.curtainSystem
-      ? `${selectedProduct.name} added with its main, sheer and lining lines.`
-      : `${selectedProduct.name} added to ${targetCalcArea.name}.`)
+      setTimeout(() => {
+        document.getElementById('area-card-' + targetCalcArea.id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 100)
+      return
+    }
+
+    const activeSet = selectedVariant || targetAreaSets[0] || {
+      id: 'single',
+      label: '',
+      width: fromInches(effectiveCalcWidth, effectiveCalcUnit),
+      height: fromInches(effectiveCalcHeight, effectiveCalcUnit),
+      unit: effectiveCalcUnit
+    }
+    const setsToProcess = [activeSet]
+
+    if (setsToProcess.length === 0) {
+      toast(`Add valid width and height for ${targetCalcArea.name} before calculating.`)
+      setEditingDimensionsId(targetCalcArea.id)
+      return
+    }
+
+    const allAddedItems = []
+    for (const vSet of setsToProcess) {
+      const vUnit = vSet.unit || effectiveCalcUnit || 'in'
+      const vWidthInches = toInches(vSet.width, vUnit)
+      const vHeightInches = toInches(vSet.height, vUnit)
+      const vLabel = vSet.label || ''
+      const curtainSetId = isCurtainProduct(selectedProduct.name) ? uid('curtain-set') : ''
+      const vMeasureSummary = formatItemMeasurementSummary({ width: vWidthInches, height: vHeightInches, unit: vUnit, variantLabel: vLabel })
+
+      const calculated = calculateProduct(selectedProduct, vWidthInches, vHeightInches, draft)
+      const lineNote = vLabel ? `${vLabel}: ${calculated.note}` : calculated.note
+      allAddedItems.push({
+        id: uid('line'),
+        area: targetCalcArea.name,
+        product: selectedProduct.name,
+        width: vWidthInches,
+        height: vHeightInches,
+        unit: vUnit,
+        measurementSetId: vSet.id,
+        measurementSummary: vMeasureSummary,
+        quantity: calculated.quantity,
+        unitPrice: calculated.unitPrice,
+        gst: selectedProduct.gst,
+        note: lineNote,
+        curtainSetId,
+        clampType: isCurtainProduct(selectedProduct.name) ? (draft.clampType || '') : '',
+        minimumArea: (selectedProduct.formula === 'blind-sqft' || isSquareFootBlind(selectedProduct.name) || selectedProduct.formula === 'roman') ? (Number(draft.minimumArea) || 11) : undefined,
+        variantLabel: vLabel
+      })
+    }
+
+    updateArea(targetCalcArea.id, { products: [...(targetCalcArea.products || []), ...allAddedItems] })
+    toast(setsToProcess.length > 1
+      ? `${selectedProduct.name} added for all ${setsToProcess.length} measurement sets in ${targetCalcArea.name}.`
+      : `${selectedProduct.name} added to ${targetCalcArea.name}${selectedVariant?.label ? ` (${selectedVariant.label})` : ''}.`)
     setTimeout(() => {
       document.getElementById('area-card-' + targetCalcArea.id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }, 100)
@@ -1996,6 +3826,7 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
     if (cleanTarget) {
       apiRequest('/staff/projects/' + project.id + '/submissions/' + encodeURIComponent(cleanTarget), { method: 'DELETE' }).catch(() => {})
       enqueueMutation({ type: 'delete_submission', projectId: project.id, submissionId: cleanTarget })
+      if (isDesktopApp()) syncCloud()
     }
 
     const nextDrafts = (project.staffDrafts || []).filter((d) => {
@@ -2106,7 +3937,12 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
             quantityOverridden: Boolean(updated.quantityOverridden),
             unitPrice: Number(updated.unitPrice) || 0,
             gst: Number(updated.gst) || 18,
-            note: updated.note || ''
+            note: updated.note || '',
+            isManualQuantity: updated.isManualQuantity,
+            measurements: updated.measurements,
+            measurementSummary: updated.measurementSummary,
+            variantLabel: updated.variantLabel !== undefined ? updated.variantLabel : '',
+            measurementSetId: updated.measurementSetId !== undefined ? updated.measurementSetId : ''
           }
           return { ...a, products: [...(a.products || []), movedItem] }
         }
@@ -2126,7 +3962,12 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
               quantityOverridden: Boolean(updated.quantityOverridden),
               unitPrice: Number(updated.unitPrice) || 0,
               gst: Number(updated.gst) || 18,
-              note: updated.note || ''
+              note: updated.note || '',
+              isManualQuantity: updated.isManualQuantity,
+              measurements: updated.measurements,
+              measurementSummary: updated.measurementSummary,
+              variantLabel: updated.variantLabel !== undefined ? updated.variantLabel : p.variantLabel,
+              measurementSetId: updated.measurementSetId !== undefined ? updated.measurementSetId : p.measurementSetId
             } : p)
           }
         }
@@ -2141,7 +3982,7 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
   // Aggregate project metrics across all areas and materials
   const totalAreasCount = project.areas.length
   const totalMaterialLines = project.areas.reduce((sum, a) => sum + (a.products?.length || 0), 0) + (project.staffDrafts?.length || 0)
-  const totalSqFt = project.areas.reduce((sum, a) => sum + Number(((Number(a.width || 0) / 12) * (Number(a.height || 0) / 12)).toFixed(2)), 0)
+  const totalSqFt = project.areas.reduce((sum, a) => sum + calculateMeasurementSetsCoverage(a).totalSqFt, 0)
   const totalEstimatedAmount = project.areas.reduce((sum, a) => {
     const areaSum = (a.products || []).reduce((s, p) => s + (Number(p.quantity) || 0) * (Number(p.unitPrice) || 0), 0)
     return sum + areaSum
@@ -2215,6 +4056,8 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
                   onClick={() => {
                     setCalcAreaId(item.id)
                     setAreaId?.(item.id)
+                    const sets = getAreaMeasurementSets(item, project.staffDrafts)
+                    if (sets[0]) setCalcVariantId(sets[0].id)
                     if (viewFilter !== 'all') {
                       setViewFilter(item.id)
                     } else {
@@ -2225,7 +4068,18 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
                   <span>{String(index + 1).padStart(2, '0')}</span>
                   <div>
                     <strong>{item.name}</strong>
-                    <small>{item.width && item.height ? `${item.width} × ${item.height} in · ${count} items` : `${count} items · Dimensions needed`}</small>
+                    <small>
+                      {(() => {
+                        const { totalSqFt, validSets } = calculateMeasurementSetsCoverage(item, item.unit, project.staffDrafts)
+                        if (validSets > 1) {
+                          return `${validSets} sets · ${quantity(totalSqFt)} sq ft · ${count} items`
+                        }
+                        if (item.width && item.height) {
+                          return `${fromInches(item.width, item.unit).toFixed(item.unit === 'in' ? 0 : 2)} × ${fromInches(item.height, item.unit).toFixed(item.unit === 'in' ? 0 : 2)} ${item.unit || 'in'} · ${count} items`
+                        }
+                        return `${count} items · Dimensions needed`
+                      })()}
+                    </small>
                   </div>
                   {isSelected && <ChevronRight size={15} />}
                 </button>
@@ -2352,31 +4206,139 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
             </div>
 
             {project.areas.length > 0 ? (
-              <div className="target-area-selector">
-                <span>Target Area / Space:</span>
-                <select
-                  value={calcAreaId}
-                  onChange={(e) => {
-                    setCalcAreaId(e.target.value)
-                    setAreaId?.(e.target.value)
-                  }}
-                >
-                  {project.areas.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} {a.width && a.height ? `(${fromInches(a.width, a.unit).toFixed(a.unit === 'in' ? 0 : 2)} × ${fromInches(a.height, a.unit).toFixed(a.unit === 'in' ? 0 : 2)} ${a.unit})` : '(No dimensions)'}
-                    </option>
-                  ))}
-                </select>
-                {targetCalcArea && (
-                  <button
-                    type="button"
-                    className="button secondary small"
-                    onClick={() => setEditingDimensionsId(targetCalcArea.id)}
-                    title="Edit dimensions for this target area"
+              <div className="target-area-selector" style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#0A4174' }}>
+                  <span>Target Area:</span>
+                  <select
+                    style={{ minWidth: '160px', padding: '7px 10px', borderRadius: '6px', border: '1px solid #BDD8E9', background: '#fff', fontSize: '12px', color: '#001D39' }}
+                    value={targetCalcArea?.id || ''}
+                    onChange={(e) => {
+                      const newAreaId = e.target.value
+                      setCalcAreaId(newAreaId)
+                      setAreaId?.(newAreaId)
+                      const targetA = project.areas.find((a) => a.id === newAreaId)
+                      const sets = targetA ? getAreaMeasurementSets(targetA, project.staffDrafts) : []
+                      const firstSetId = sets[0]?.id || ''
+                      setCalcVariantId(firstSetId)
+                      if (sets[0] && (Number(sets[0].width) > 0 || Number(sets[0].height) > 0)) {
+                        setDraft((prev) => ({
+                          ...prev,
+                          itemMeasurements: [{
+                            id: uid('mset'),
+                            label: sets[0].label || 'Measurement 1',
+                            width: sets[0].width,
+                            height: sets[0].height,
+                            unit: sets[0].unit || targetA.unit || 'in'
+                          }]
+                        }))
+                      }
+                    }}
                   >
-                    <Ruler size={13} />
-                    {targetCalcArea.width && targetCalcArea.height ? 'Adjust dimensions' : 'Enter dimensions'}
-                  </button>
+                    {project.areas.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {targetCalcArea && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: '#0A4174' }}>
+                    <span>Measurement Set:</span>
+                    {targetAreaSets.length === 0 ? (
+                      <select
+                        style={{ minWidth: '180px', padding: '7px 10px', borderRadius: '6px', border: '1px solid #BDD8E9', background: '#fff', fontSize: '12px', color: '#001D39' }}
+                        value="no-sets"
+                        onChange={(e) => {
+                          if (e.target.value === '__new_set__') {
+                            handleAddNewMeasurementSet(targetCalcArea.id)
+                          }
+                        }}
+                      >
+                        <option value="no-sets">No dimensions yet</option>
+                        <option value="__new_set__">+ Add measurement set for {targetCalcArea.name}…</option>
+                      </select>
+                    ) : (
+                      <select
+                        style={{ minWidth: '220px', padding: '7px 10px', borderRadius: '6px', border: '1px solid #BDD8E9', background: '#fff', fontSize: '12px', color: '#001D39' }}
+                        value={selectedVariant?.id || targetAreaSets[0]?.id || ''}
+                        onChange={(e) => {
+                          if (e.target.value === '__new_set__') {
+                            handleAddNewMeasurementSet(targetCalcArea.id)
+                            return
+                          }
+                          const newVarId = e.target.value
+                          setCalcVariantId(newVarId)
+                          const v = targetAreaSets.find((s) => String(s.id) === String(newVarId))
+                          if (v && (Number(v.width) > 0 || Number(v.height) > 0)) {
+                            setDraft((prev) => ({
+                              ...prev,
+                              itemMeasurements: [{
+                                id: uid('mset'),
+                                label: v.label || 'Measurement 1',
+                                width: v.width,
+                                height: v.height,
+                                unit: v.unit || targetCalcArea.unit || 'in'
+                              }]
+                            }))
+                          }
+                        }}
+                      >
+                        {targetAreaSets.map((s, idx) => {
+                          const sqft = (Number(s.width) > 0 && Number(s.height) > 0)
+                            ? ((toInches(s.width, s.unit || targetCalcArea.unit || 'in') / 12) * (toInches(s.height, s.unit || targetCalcArea.unit || 'in') / 12)).toFixed(2)
+                            : null
+                          const dimText = s.width && s.height ? `${s.width} × ${s.height} ${s.unit || targetCalcArea.unit || 'in'}${sqft ? ` (${sqft} sq ft)` : ''}` : 'No dimensions'
+                          return (
+                            <option key={s.id || idx} value={s.id}>
+                              #{idx + 1} {s.label || `Measurement ${idx + 1}`}: {dimText}
+                            </option>
+                          )
+                        })}
+                        <option value="__new_set__">+ Add new measurement set for {targetCalcArea.name}…</option>
+                      </select>
+                    )}
+                  </label>
+                )}
+
+                {targetCalcArea && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {selectedVariant && (
+                      <span className="selected-variant-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#eef6fa', border: '1px solid #BDD8E9', color: '#0A4174', padding: '3px 8px', borderRadius: '5px', fontSize: '12px', fontWeight: 600 }}>
+                        <Ruler size={12} />
+                        {selectedVariant.label || 'Set'}: {selectedVariant.width} × {selectedVariant.height} {selectedVariant.unit || targetCalcArea.unit || 'in'}
+                        <button
+                          type="button"
+                          className="measure-chip-rename-btn"
+                          title={`Rename "${selectedVariant.label || 'Set'}"`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setRenamingMeasurement({ areaId: targetCalcArea.id, set: selectedVariant })
+                          }}
+                        >
+                          <Pencil size={11} />
+                        </button>
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={() => setEditingDimensionsId(editingDimensionsId === targetCalcArea.id ? null : targetCalcArea.id)}
+                      title={'Edit dimensions for ' + targetCalcArea.name}
+                    >
+                      <Ruler size={13} />
+                      {targetCalcArea.width && targetCalcArea.height ? 'Adjust dimensions' : 'Enter dimensions'}
+                    </button>
+                    <button
+                      type="button"
+                      className="button secondary small"
+                      onClick={() => handleAddNewMeasurementSet(targetCalcArea.id)}
+                      title={'Record a new measurement set for ' + targetCalcArea.name + ' (retains existing)'}
+                    >
+                      <Plus size={13} />
+                      <span>Add measurement set</span>
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
@@ -2385,18 +4347,186 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
               </div>
             )}
 
+            {/* Inline drawer if editing dimensions from within the calculator */}
+            {editingDimensionsId === targetCalcArea?.id && (
+              <div style={{ margin: '14px 0' }}>
+                <AreaDimensionDrawer
+                  area={targetCalcArea}
+                  onSaveAreaMeasurements={handleSaveAreaMeasurements}
+                  onChangeDimension={changeDimension}
+                  onChangeUnit={changeUnit}
+                  staffEntriesCount={(project.staffDrafts || []).filter(item => (item.area || '').toLowerCase() === targetCalcArea.name.toLowerCase()).length}
+                  onSyncToStaff={() => syncAreaDimensionsToStaff(targetCalcArea)}
+                  onRenameMeasurement={(info) => setRenamingMeasurement(info)}
+                  onClose={() => setEditingDimensionsId(null)}
+                />
+              </div>
+            )}
+
             <div className="product-controls">
-              <label className="field product-select">
+              <label className="field product-select" style={{ gridColumn: isManualQuantityMaterial(draft.product) ? '1 / -1' : undefined }}>
                 <span>Product / material</span>
                 <select value={draft.product} onChange={(e) => {
                   const nextProduct = PRODUCTS.find((item) => item.name === e.target.value)
-                  setDraft({ ...draft, product: e.target.value, clampType: nextProduct?.curtainSystem ? draft.clampType : '' })
+                  setDraft({ ...draft, product: e.target.value, clampType: (nextProduct?.curtainSystem || isCurtainProduct(e.target.value)) ? draft.clampType : '' })
                 }}>
                   {PRODUCTS.map((item) => <option key={item.name}>{item.name}</option>)}
                 </select>
               </label>
 
-              {selectedProduct.curtainSystem && (
+              {/* Optional Measurements Panel for the 16 manual materials */}
+              {isManualQuantityMaterial(draft.product) && (
+                <div className="calc-manual-panel" style={{ gridColumn: '1 / -1', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Ruler size={14} color="#059669" />
+                      <strong style={{ fontSize: '13px', color: '#072218' }}>Measurements (Optional)</strong>
+                      <span style={{ fontSize: '11px', color: '#587163' }}>— reflects in area & materials section only</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="button secondary compact"
+                      onClick={() => {
+                        const currentSets = Array.isArray(draft.itemMeasurements) && draft.itemMeasurements.length > 0
+                          ? draft.itemMeasurements
+                          : []
+                        const newSet = {
+                          id: uid('mset'),
+                          label: `Measurement ${currentSets.length + 1}`,
+                          width: '',
+                          height: '',
+                          unit: targetCalcArea?.unit || 'in'
+                        }
+                        setDraft({ ...draft, itemMeasurements: [...currentSets, newSet] })
+                      }}
+                    >
+                      <Plus size={12} />Add measurement set
+                    </button>
+                  </div>
+
+                  {/* Quick-fill chips from target area's existing measurement sets */}
+                  {targetCalcArea && getAreaMeasurementSets(targetCalcArea).length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>Use {targetCalcArea.name} set:</span>
+                      {getAreaMeasurementSets(targetCalcArea).map((s, idx) => {
+                        if (!s.width || !s.height) return null
+                        return (
+                          <button
+                            type="button"
+                            key={s.id || idx}
+                            className="quick-dim-chip"
+                            onClick={() => {
+                              setDraft({
+                                ...draft,
+                                itemMeasurements: [{
+                                  id: uid('mset'),
+                                  label: s.label || `Set ${idx + 1}`,
+                                  width: s.width,
+                                  height: s.height,
+                                  unit: s.unit || targetCalcArea.unit || 'in'
+                                }]
+                              })
+                            }}
+                          >
+                            {s.label || `Set ${idx + 1}`}: {s.width} × {s.height} {s.unit || targetCalcArea.unit || 'in'}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* Measurement sets inputs */}
+                  <div className="msets-container" style={{ margin: '6px 0 12px 0' }}>
+                    {(Array.isArray(draft.itemMeasurements) && draft.itemMeasurements.length > 0
+                      ? draft.itemMeasurements
+                      : [{ id: uid('mset'), label: 'Measurement 1', width: '', height: '', unit: targetCalcArea?.unit || 'in' }]
+                    ).map((set, sIdx, allSets) => {
+                      const sqft = (Number(set.width) > 0 && Number(set.height) > 0)
+                        ? ((toInches(set.width, set.unit || 'in') / 12) * (toInches(set.height, set.unit || 'in') / 12)).toFixed(2)
+                        : null
+                      return (
+                        <div key={set.id || sIdx} className="mset-row">
+                          <input
+                            className="mset-label-input"
+                            value={set.label || `Measurement ${sIdx + 1}`}
+                            placeholder={`Set ${sIdx + 1}`}
+                            onChange={(e) => {
+                              const updated = allSets.map(s => s.id === set.id ? { ...s, label: e.target.value } : s)
+                              setDraft({ ...draft, itemMeasurements: updated })
+                            }}
+                          />
+                          <div className="mset-inputs">
+                            <div className="mset-field">
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                inputMode="decimal"
+                                placeholder="Width (opt)"
+                                value={set.width ?? ''}
+                                onFocus={(e) => e.target.select?.()}
+                                onWheel={(e) => e.target.blur()}
+                                onChange={(e) => {
+                                  const updated = allSets.map(s => s.id === set.id ? { ...s, width: e.target.value } : s)
+                                  setDraft({ ...draft, itemMeasurements: updated })
+                                }}
+                              />
+                              <small>{set.unit || targetCalcArea?.unit || 'in'}</small>
+                            </div>
+                            <span className="times" style={{ padding: 0, fontSize: '16px' }}>×</span>
+                            <div className="mset-field">
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                inputMode="decimal"
+                                placeholder="Height (opt)"
+                                value={set.height ?? ''}
+                                onFocus={(e) => e.target.select?.()}
+                                onWheel={(e) => e.target.blur()}
+                                onChange={(e) => {
+                                  const updated = allSets.map(s => s.id === set.id ? { ...s, height: e.target.value } : s)
+                                  setDraft({ ...draft, itemMeasurements: updated })
+                                }}
+                              />
+                              <small>{set.unit || targetCalcArea?.unit || 'in'}</small>
+                            </div>
+                            <select
+                              className="mset-unit-select"
+                              value={set.unit || targetCalcArea?.unit || 'in'}
+                              onChange={(e) => {
+                                const updated = allSets.map(s => s.id === set.id ? { ...s, unit: e.target.value } : s)
+                                setDraft({ ...draft, itemMeasurements: updated })
+                              }}
+                            >
+                              <option value="in">in</option>
+                              <option value="ft">ft</option>
+                              <option value="m">m</option>
+                              <option value="cm">cm</option>
+                            </select>
+                            {sqft && <span className="mset-sqft-tag">{sqft} sq ft</span>}
+                            {allSets.length > 1 && (
+                              <button
+                                type="button"
+                                className="area-action-btn danger"
+                                title="Remove measurement set"
+                                onClick={() => {
+                                  const updated = allSets.filter(s => s.id !== set.id)
+                                  setDraft({ ...draft, itemMeasurements: updated })
+                                }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(selectedProduct.curtainSystem || isCurtainProduct(selectedProduct.name)) && (
                 <label className="field product-select">
                   <span>Mounting clamp <small>(optional)</small></span>
                   <select value={draft.clampType} onChange={(e) => setDraft({ ...draft, clampType: e.target.value })}>
@@ -2407,7 +4537,29 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
                 </label>
               )}
 
-              {selectedProduct.formula === 'roman' ? (
+              {isManualQuantityMaterial(draft.product) ? (
+                <>
+                  <Field
+                    label={`Manual Quantity (${unitLabel(draft.product)})`}
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder={`Enter quantity in ${unitLabel(draft.product)}`}
+                    value={draft.manualQuantity}
+                    onChange={(e) => setDraft({ ...draft, manualQuantity: e.target.value })}
+                    required
+                  />
+                  <Field
+                    label={`MRP per ${unitLabel(draft.product)} (₹)`}
+                    type="number"
+                    min="0"
+                    placeholder="Enter MRP per unit"
+                    value={draft.price}
+                    onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+                    required
+                  />
+                </>
+              ) : selectedProduct.formula === 'roman' ? (
                 <div className="roman-controls">
                   <Field label="Fabric MRP / m" type="number" value={draft.fabricPrice} onChange={(e) => setDraft({ ...draft, fabricPrice: e.target.value })} />
                   <Field label="Lining MRP / m" type="number" value={draft.liningPrice} onChange={(e) => setDraft({ ...draft, liningPrice: e.target.value })} />
@@ -2426,37 +4578,104 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
                     </select>
                   </label>
                 </div>
+              ) : (selectedProduct.formula === 'blind-sqft' || isSquareFootBlind(selectedProduct.name)) ? (
+                <div className="blind-controls">
+                  <Field
+                    label={`MRP per ${unitLabel(draft.product)} (₹)`}
+                    type="number"
+                    min="0"
+                    placeholder="Enter MRP per unit"
+                    value={draft.price}
+                    onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+                    required
+                  />
+                  <label className="field">
+                    <span>Minimum chargeable area</span>
+                    <select value={draft.minimumArea || 11} onChange={(e) => setDraft({ ...draft, minimumArea: e.target.value })}>
+                      <option value="11">11 sq ft</option>
+                      <option value="16.5">16.5 sq ft</option>
+                    </select>
+                  </label>
+                </div>
               ) : (
                 <Field label="MRP per unit" type="number" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
               )}
             </div>
 
-            <div className="calculation-result">
-              <div>
-                <span>{selectedProduct.curtainSystem ? 'Quantity per curtain line' : 'Calculated quantity'}</span>
-                <strong>
-                  {quantity(preview?.quantity)} <small>{['american', 'eyelet', 'ripple', 'valance'].includes(selectedProduct.formula) || /curtain|sheer|lining|eyelet|eylet|ripple|american|valance|valence/i.test(selectedProduct.name) ? 'm' : 'sq ft'}</small>
-                </strong>
-                <p>{selectedProduct.curtainSystem ? 'Adds main curtain, sheer and lining together. ' + (preview?.note || '') : (preview?.note || (targetCalcArea ? 'Add measurements to calculate' : 'Select an area'))}</p>
-                {(selectedProduct.formula === 'eyelet' || selectedProduct.formula === 'ripple' || /eyelet|eylet|ripple/i.test(selectedProduct.name)) && (
-                  <div style={{ marginTop: '4px', fontSize: '11px', color: '#1d4ed8', fontWeight: 600 }}>
-                    Formula: ⌈W / 20⌉ × ((H + 15) / 39)
-                  </div>
-                )}
+            {isManualQuantityMaterial(draft.product) ? (
+              <div className="calculation-result">
+                <div>
+                  <span>Manual quantity & measurements</span>
+                  <strong>
+                    {draft.manualQuantity ? `${draft.manualQuantity} ` : '— '}<small>{unitLabel(draft.product)}</small>
+                  </strong>
+                  <p>
+                    {(() => {
+                      const validSets = (draft.itemMeasurements || []).filter(m => Number(m.width) > 0 && Number(m.height) > 0)
+                      if (validSets.length > 0) {
+                        return formatItemMeasurementSummary({ measurements: validSets }) + ' (Measurement optional)'
+                      }
+                      return 'Measurement is optional. Quantity and MRP per unit are manually entered.'
+                    })()}
+                  </p>
+                </div>
+                <div>
+                  <span>MRP per {unitLabel(draft.product)}</span>
+                  <strong>{draft.price ? currency(draft.price) : '₹0'}</strong>
+                  <p>GST {selectedProduct.gst}% applicable · {draft.manualQuantity && draft.price ? `Line Total: ${currency(Number(draft.manualQuantity) * Number(draft.price))}` : 'Enter quantity and rate'}</p>
+                </div>
+                <button
+                  className="button primary"
+                  onClick={addMaterial}
+                  disabled={!targetCalcArea || !draft.manualQuantity || Number(draft.manualQuantity) <= 0}
+                >
+                  <Plus size={16} />Add {draft.product} to {targetCalcArea?.name || 'Area'}{selectedVariant?.label ? ` (${selectedVariant.label})` : ''}
+                </button>
               </div>
-              <div>
-                <span>Quoted unit price</span>
-                <strong>{currency(preview?.unitPrice)}</strong>
-                <p>GST {selectedProduct.gst}% applicable</p>
+            ) : (
+              <div className="calculation-result">
+                <div>
+                  <span>{selectedProduct.curtainSystem ? 'Quantity per curtain line' : 'Calculated quantity'}</span>
+                  <strong>
+                    {quantity(preview?.quantity)} <small>{unitLabel(selectedProduct.name)}</small>
+                  </strong>
+                  <p>{selectedProduct.curtainSystem ? 'Adds main curtain, sheer and lining together. ' + (preview?.note || '') : (preview?.note || (targetCalcArea ? 'Add measurements to calculate' : 'Select an area'))}</p>
+                  {isStitchingPanelProduct(selectedProduct.name) ? (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#0A4174', fontWeight: 600 }}>
+                      {/american/i.test(selectedProduct.name) ? 'Formula: ⌈W / 18⌉ panels'
+                        : /valence|velance|valance/i.test(selectedProduct.name) ? 'Formula: ⌈(W + 14) / 50⌉ panels'
+                        : 'Formula: ⌈W / 20⌉ panels'}
+                    </div>
+                  ) : isHardwareProduct(selectedProduct.name) ? (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#0A4174', fontWeight: 600 }}>
+                      {/track/i.test(selectedProduct.name) ? 'Formula: ⌈W / 12⌉ running feet'
+                        : /runner|hook/i.test(selectedProduct.name) ? 'Formula: ⌈W / 12⌉ × 3 pcs'
+                        : 'Formula: ⌈(⌈W / 12⌉) / 2⌉ pcs'}
+                    </div>
+                  ) : (selectedProduct.formula === 'blind-sqft' || isSquareFootBlind(selectedProduct.name)) ? (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#0A4174', fontWeight: 600 }}>
+                      Formula: round(W/12) × round(H/12) sq ft (Min. {draft.minimumArea || 11} sq ft)
+                    </div>
+                  ) : (selectedProduct.formula === 'eyelet' || selectedProduct.formula === 'ripple' || /eyelet|eylet|ripple/i.test(selectedProduct.name)) ? (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#0A4174', fontWeight: 600 }}>
+                      Formula: ⌈W / 20⌉ × ((H + 15) / 39)
+                    </div>
+                  ) : null}
+                </div>
+                <div>
+                  <span>Quoted unit price</span>
+                  <strong>{currency(preview?.unitPrice)}</strong>
+                  <p>GST {selectedProduct.gst}% applicable</p>
+                </div>
+                <button
+                  className="button primary"
+                  onClick={addMaterial}
+                  disabled={!targetCalcArea}
+                >
+                  <Plus size={16} />{selectedProduct.curtainSystem ? 'Add curtain set to ' : 'Add to '}{targetCalcArea?.name || 'Area'}{selectedVariant?.label ? ` (${selectedVariant.label})` : ''}
+                </button>
               </div>
-              <button
-                className="button primary"
-                onClick={addMaterial}
-                disabled={!targetCalcArea}
-              >
-                <Plus size={16} />{selectedProduct.curtainSystem ? 'Add curtain set to ' : 'Add to '}{targetCalcArea?.name || 'Area'}
-              </button>
-            </div>
+            )}
           </section>
         )}
 
@@ -2493,11 +4712,16 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
                       <div className="area-dim-pill">
                         <Ruler size={13} />
                         <span>
-                          {area.width && area.height ? (
-                            `${fromInches(area.width, area.unit).toFixed(area.unit === 'in' ? 0 : 2)} × ${fromInches(area.height, area.unit).toFixed(area.unit === 'in' ? 0 : 2)} ${area.unit} · ${quantity(((area.width / 12) * (area.height / 12)).toFixed(2))} sq ft`
-                          ) : (
-                            'Dimensions needed'
-                          )}
+                          {(() => {
+                            const { totalSqFt: cov, validSets } = calculateMeasurementSetsCoverage(area, area.unit, project.staffDrafts)
+                            if (validSets > 1) {
+                              return `${validSets} measurement sets · ${quantity(cov)} sq ft`
+                            }
+                            if (area.width && area.height) {
+                              return `${fromInches(area.width, area.unit).toFixed(area.unit === 'in' ? 0 : 2)} × ${fromInches(area.height, area.unit).toFixed(area.unit === 'in' ? 0 : 2)} ${area.unit} · ${quantity(cov)} sq ft`
+                            }
+                            return 'Dimensions needed'
+                          })()}
                         </span>
                       </div>
                     </div>
@@ -2515,9 +4739,21 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
 
                       <button
                         type="button"
+                        className="button small secondary"
+                        onClick={() => handleAddNewMeasurementSet(area.id)}
+                        title={'Add a new measurement set for ' + area.name + ' (retains existing)'}
+                      >
+                        <Plus size={13} /><span>Add measurement set</span>
+                      </button>
+
+                      <button
+                        type="button"
                         className="button small primary"
                         onClick={() => {
                           setCalcAreaId(area.id)
+                          setAreaId?.(area.id)
+                          const sets = getAreaMeasurementSets(area, project.staffDrafts)
+                          if (sets[0]) setCalcVariantId(sets[0].id)
                           setShowCalculator(true)
                           document.getElementById('material-calculator')?.scrollIntoView({ behavior: 'smooth' })
                         }}
@@ -2538,15 +4774,98 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
                   </div>
 
                   {/* Inline Dimension Editor for this Area */}
-                  {editingDimensionsId === area.id && (
+                  {editingDimensionsId === area.id ? (
                     <AreaDimensionDrawer
                       area={area}
+                      onSaveAreaMeasurements={handleSaveAreaMeasurements}
                       onChangeDimension={changeDimension}
                       onChangeUnit={changeUnit}
                       staffEntriesCount={thisAreaStaffDrafts.length}
                       onSyncToStaff={() => syncAreaDimensionsToStaff(area)}
+                      onRenameMeasurement={(info) => setRenamingMeasurement(info)}
                       onClose={() => setEditingDimensionsId(null)}
                     />
+                  ) : (
+                    (() => {
+                      const areaSets = getAreaMeasurementSets(area, project.staffDrafts)
+                      const { totalSqFt: cov, validSets } = calculateMeasurementSetsCoverage(areaSets, area.unit)
+                      if (areaSets.length === 0) return null
+                      return (
+                        <div className="area-measurements-panel">
+                          <div className="area-measurements-panel-header">
+                            <div className="area-measurements-summary">
+                              <Ruler size={13} />
+                              <strong>Area Measurements</strong>
+                              <span>— {areaSets.length} {areaSets.length === 1 ? 'opening / set' : 'openings / sets'} · <b>{quantity(cov)} sq ft</b> total</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                className="button small secondary"
+                                onClick={() => setEditingDimensionsId(area.id)}
+                                style={{ padding: '3px 8px', fontSize: '11px', height: '26px' }}
+                                title={'Edit existing measurements for ' + area.name}
+                              >
+                                <Pencil size={11} /> Edit measurements
+                              </button>
+                              <button
+                                type="button"
+                                className="button small secondary"
+                                onClick={() => handleAddNewMeasurementSet(area.id)}
+                                style={{ padding: '3px 8px', fontSize: '11px', height: '26px', background: '#eef6fa', borderColor: '#BDD8E9', color: '#0A4174' }}
+                                title={'Record a new measurement set for ' + area.name + ' (retains existing)'}
+                              >
+                                <Plus size={11} /> Add measurement set
+                              </button>
+                            </div>
+                          </div>
+                          <div className="area-measurements-grid">
+                            {areaSets.map((s, sIdx) => {
+                              const sqft = (Number(s.width) > 0 && Number(s.height) > 0)
+                                ? ((toInches(s.width, s.unit || area.unit || 'in') / 12) * (toInches(s.height, s.unit || area.unit || 'in') / 12)).toFixed(2)
+                                : null
+                              return (
+                                <div
+                                  key={s.id || sIdx}
+                                  className="area-measure-item-chip"
+                                  style={{ cursor: 'pointer' }}
+                                  title={`Use ${s.label || `Measurement ${sIdx + 1}`} in calculator`}
+                                  onClick={() => {
+                                    setCalcAreaId(area.id)
+                                    setAreaId?.(area.id)
+                                    setCalcVariantId(s.id)
+                                    setShowCalculator(true)
+                                    document.getElementById('material-calculator')?.scrollIntoView({ behavior: 'smooth' })
+                                  }}
+                                >
+                                  <span className="measure-chip-num">#{sIdx + 1}</span>
+                                  <div className="measure-chip-body">
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                                      <strong>{s.label || `Measurement ${sIdx + 1}`}</strong>
+                                      <button
+                                        type="button"
+                                        className="measure-chip-rename-btn"
+                                        title={`Rename "${s.label || `Measurement ${sIdx + 1}`}"`}
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setRenamingMeasurement({ areaId: area.id, set: s })
+                                        }}
+                                      >
+                                        <Pencil size={11} />
+                                      </button>
+                                    </div>
+                                    <span>
+                                      {s.width && s.height ? `${s.width} × ${s.height} ${s.unit || area.unit || 'in'}` : 'Dimensions needed'}
+                                      {sqft && <span className="measure-chip-sqft">{sqft} sq ft</span>}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })()
                   )}
 
                   {/* Materials Table for this Area */}
@@ -2571,7 +4890,20 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
                             return (
                               <tr key={item.id}>
                                 <td>
-                                  <strong>{item.product}</strong>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    <strong>{item.product}</strong>
+                                    {item.variantLabel && (
+                                      <span className="selected-variant-chip" style={{ fontSize: '11px', padding: '1px 6px', background: '#eef3ed', color: '#385a3e', borderRadius: '4px', border: '1px solid #d5e5d3' }}>
+                                        {item.variantLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(item.measurementSummary || formatItemMeasurementSummary(item)) && (
+                                    <div className="material-measure-badge">
+                                      <Ruler size={11} />
+                                      <span>{item.measurementSummary || formatItemMeasurementSummary(item)}</span>
+                                    </div>
+                                  )}
                                   {item.note && <small>{item.note}</small>}
                                 </td>
                                 <td><strong>{quantity(item.quantity)} <small style={{ fontWeight: 500, opacity: 0.85 }}>{unitLabel(item.product)}</small></strong></td>
@@ -2609,7 +4941,20 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
                             return (
                               <tr className="staff-material" key={item.id}>
                                 <td>
-                                  <strong>{item.product}</strong>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    <strong>{item.product}</strong>
+                                    {item.variantLabel && (
+                                      <span className="selected-variant-chip" style={{ fontSize: '11px', padding: '1px 6px', background: '#eef3ed', color: '#385a3e', borderRadius: '4px', border: '1px solid #d5e5d3' }}>
+                                        {item.variantLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(item.measurementSummary || formatItemMeasurementSummary(item)) && (
+                                    <div className="material-measure-badge">
+                                      <Ruler size={11} />
+                                      <span>{item.measurementSummary || formatItemMeasurementSummary(item)}</span>
+                                    </div>
+                                  )}
                                   {item.note && <small>{item.note}</small>}
                                 </td>
                                 <td><strong>{quantity(item.quantity)} <small style={{ fontWeight: 500, opacity: 0.85 }}>{unitLabel(item.product)}</small></strong></td>
@@ -2784,6 +5129,14 @@ function Areas({ project, areaId, setAreaId, updateArea, patchProject, toast }) 
           onSave={handleRenameArea}
         />
       )}
+      {renamingMeasurement && (
+        <RenameMeasurementModal
+          areaId={renamingMeasurement.areaId}
+          measurementSet={renamingMeasurement.set}
+          onClose={() => setRenamingMeasurement(null)}
+          onSave={handleRenameMeasurement}
+        />
+      )}
       {editingMaterial && (
         <EditMaterialModal
           material={editingMaterial}
@@ -2803,6 +5156,147 @@ function isHardwareLine(line) {
   return p === 'track' || p === 'tracks' || p === 'runners' || p === 'runner' || p === 'hooks' || p === 'hook' ||
     CLAMP_OPTIONS.some(c => c.toLowerCase() === p) ||
     p.includes('clamp')
+}
+
+function isDiscountLine(line) {
+  if (!line) return false
+  if (line.isDiscount) return true
+  const p = String(line.product || '').toLowerCase().trim()
+  return p === 'discount' || p.includes('discount')
+}
+
+function isAccessoryOrServiceLine(line) {
+  if (!line || isDiscountLine(line)) return false
+  if (line.isAutoHardware) return true
+  const area = (line.area || '').toLowerCase().trim()
+  if (area === 'hardware' || area === 'services' || area === 'installation' || area === 'stitching' || area === 'delivery') return true
+  const p = (line.product || '').toLowerCase().trim()
+  if (p === 'track' || p === 'tracks' || p.includes('track') || p.includes('rod')) return true
+  if (p === 'runners' || p === 'runner' || (p.includes('runner') && !p.includes('fabric'))) return true
+  if (p === 'hooks' || p === 'hook' || p.includes('hook')) return true
+  if (p.includes('clamp') || CLAMP_OPTIONS.some((c) => c.toLowerCase() === p)) return true
+  if (
+    p === 'american stitching' ||
+    p === 'valence stitching' ||
+    p === 'velance stitching' ||
+    p === 'valance stitching' ||
+    p === 'eyelet stitching' ||
+    p === 'ripple stitching' ||
+    isStitchingPanelProduct(p) ||
+    p.includes('stitching') ||
+    p.includes('making')
+  ) return true
+  if (p.includes('installation') || p.includes('fitting')) return true
+  if (p.includes('delivery') || p.includes('transport') || p.includes('shipping') || p.includes('freight')) return true
+  return false
+}
+
+function isInstallationServiceLine(line) {
+  if (!line) return false
+  if (line.isInstallationService) return true
+  const p = (line.product || '').toLowerCase().trim()
+  return p === 'installation' || p.includes('installation') || p === 'fitting'
+}
+
+function isDeliveryServiceLine(line) {
+  if (!line) return false
+  if (line.isDeliveryService) return true
+  const p = (line.product || '').toLowerCase().trim()
+  return p === 'delivery' || p.includes('delivery') || p === 'transport' || p === 'shipping' || p === 'freight'
+}
+
+function isBlindProduct(name) {
+  if (!name) return false
+  const p = String(name).toLowerCase().trim()
+  return p.includes('blind') || p.includes('roman') || p.includes('roller') ||
+    p.includes('zebra') || p.includes('venetian') || p.includes('monsoon')
+}
+
+// Formula: Installation will be number of tracks plus number of roman blind or roller or any other blinds
+function calculateInstallationBreakdown(items = [], project = null) {
+  let numTracks = 0
+  let numBlinds = 0
+
+  if (project?.areas && project.areas.length > 0) {
+    for (const area of project.areas) {
+      const areaCurtains = (area.products || []).filter((p) => isCurtainProduct(p.product))
+      if (areaCurtains.length > 0) {
+        const groups = new Map()
+        for (const c of areaCurtains) {
+          const pName = String(c.product || '').toLowerCase()
+          if (pName.includes('lining')) continue
+          const key = c.curtainSetId || c.measurementSetId || c.variantLabel || 'default'
+          if (!groups.has(key)) groups.set(key, [])
+          groups.get(key).push(c)
+        }
+        for (const [, grp] of groups) {
+          const hasMain = grp.some((i) => i.product.toLowerCase().includes('main') || (!i.product.toLowerCase().includes('sheer')))
+          const hasSheer = grp.some((i) => i.product.toLowerCase().includes('sheer'))
+          const hasDouble = grp.some((i) => (i.clampType || '').toLowerCase().includes('double'))
+          if (hasDouble || (hasMain && hasSheer)) {
+            numTracks += 2
+          } else {
+            numTracks += 1
+          }
+        }
+      }
+
+      for (const p of area.products || []) {
+        if (isBlindProduct(p.product)) {
+          const mCount = Array.isArray(p.measurements)
+            ? p.measurements.filter((m) => Number(m.width) > 0 || Number(m.height) > 0).length
+            : 0
+          numBlinds += (mCount > 0 ? mCount : 1)
+        }
+      }
+    }
+
+    for (const d of project.staffDrafts || []) {
+      const p = String(d.product || '').toLowerCase()
+      if (isBlindProduct(p)) {
+        numBlinds += 1
+      } else if (isCurtainProduct(p) && !p.includes('lining')) {
+        numTracks += 1
+      }
+    }
+  } else {
+    const curtainItems = (items || []).filter((i) => isCurtainProduct(i.product) && !String(i.product).toLowerCase().includes('lining'))
+    const blindItems = (items || []).filter((i) => isBlindProduct(i.product))
+
+    const areaCurtainMap = new Map()
+    for (const it of curtainItems) {
+      const key = (it.area || 'default') + '::' + (it.variantLabel || 'set1')
+      if (!areaCurtainMap.has(key)) areaCurtainMap.set(key, [])
+      areaCurtainMap.get(key).push(it)
+    }
+    for (const [, grp] of areaCurtainMap) {
+      const hasMain = grp.some((i) => i.product.toLowerCase().includes('main'))
+      const hasSheer = grp.some((i) => i.product.toLowerCase().includes('sheer'))
+      if (hasMain && hasSheer) numTracks += 2
+      else numTracks += 1
+    }
+
+    for (const it of blindItems) {
+      const mCount = Array.isArray(it.measurements)
+        ? it.measurements.filter((m) => Number(m.width) > 0 || Number(m.height) > 0).length
+        : 0
+      numBlinds += (mCount > 0 ? mCount : 1)
+    }
+  }
+
+  if (numTracks === 0) {
+    const trackItem = (items || []).find((i) => (i.product || '').toLowerCase().trim() === 'track')
+    if (trackItem) {
+      const runningFt = Number(trackItem.quantity) || 0
+      numTracks = Math.max(1, Math.round(runningFt / 10))
+    }
+  }
+
+  return {
+    numTracks,
+    numBlinds,
+    totalInstallation: numTracks + numBlinds
+  }
 }
 
 function curtainHardwareLines(project) {
@@ -2846,7 +5340,7 @@ function curtainHardwareLines(project) {
       if (!trackFeet) continue
       totalTrackFeet += trackFeet
       if (item.clampType) {
-        const clampQty = Math.max(2, Math.ceil(trackFeet / 3) + 1)
+        const clampQty = Math.ceil(trackFeet / 2)
         clampCounts[item.clampType] = (clampCounts[item.clampType] || 0) + clampQty
       }
     }
@@ -2874,7 +5368,7 @@ function curtainHardwareLines(project) {
     if (!trackFeet) continue
     totalTrackFeet += trackFeet
     if (item.clampType) {
-      const clampQty = Math.max(2, Math.ceil(trackFeet / 3) + 1)
+      const clampQty = Math.ceil(trackFeet / 2)
       clampCounts[item.clampType] = (clampCounts[item.clampType] || 0) + clampQty
     }
   }
@@ -2885,7 +5379,7 @@ function curtainHardwareLines(project) {
     {
       id: 'hardware-unified-track',
       area: 'Hardware',
-      product: 'Track',
+      product: 'Tracks',
       quantity: totalTrackFeet,
       unitPrice: 0,
       gst: 18,
@@ -2941,10 +5435,10 @@ function unifyQuoteItems(items) {
     } else {
       let p = (item.product || 'Hardware').trim()
       let key = p.toLowerCase()
-      if (key === 'tracks') { key = 'track'; p = 'Track' }
+      if (key === 'tracks' || key === 'track') { key = 'tracks'; p = 'Tracks' }
       if (key === 'runner') { key = 'runners'; p = 'Runners' }
       if (key === 'hook') { key = 'hooks'; p = 'Hooks' }
-      if (key === 'track') { p = 'Track' }
+      if (key === 'tracks') { p = 'Tracks' }
       if (key === 'runners') { p = 'Runners' }
       if (key === 'hooks') { p = 'Hooks' }
       for (const opt of CLAMP_OPTIONS) {
@@ -3001,8 +5495,35 @@ function makeQuotation(project, patchProject, toast, onCreated) {
     ...(project.staffDrafts || []).map(staffSubmissionLine)
   ]
   const hardware = curtainHardwareLines(project)
-  const items = unifyQuoteItems([...regularItems, ...hardware])
+  let items = unifyQuoteItems([...regularItems, ...hardware])
   if (!items.length) { toast('Add at least one material line before creating a quotation.'); return }
+
+  const breakdown = calculateInstallationBreakdown(items, project)
+  if (breakdown.totalInstallation > 0) {
+    items.push({
+      id: uid('line'),
+      area: 'Services',
+      product: 'Installation',
+      quantity: breakdown.totalInstallation,
+      unitPrice: 0,
+      gst: 18,
+      isInstallationService: true,
+      note: `Calculated: ${breakdown.totalInstallation} units (${breakdown.numTracks} tracks + ${breakdown.numBlinds} blinds)`
+    })
+  }
+
+  // Default discount line ready for manual input
+  items.push({
+    id: uid('line'),
+    area: 'Billing',
+    product: 'Discount',
+    quantity: 1,
+    unitPrice: 0,
+    gst: 0,
+    isDiscount: true,
+    note: 'Manual discount on untaxed amount'
+  })
+
   const existingClean = mergeDuplicateQuotations(project.quotations || [])
   const number = nextQuotationId(existingClean)
   const draftIndex = existingClean.length + 1
@@ -3011,11 +5532,12 @@ function makeQuotation(project, patchProject, toast, onCreated) {
     title: `Draft ${draftIndex}`,
     date: today(),
     status: 'Draft',
+    discount: 0,
     items
   }
   patchProject({ quotations: [...existingClean, newDraft] })
   onCreated?.(number)
-  toast(`${number} (Draft ${draftIndex}) created with unified curtain hardware.`)
+  toast(`${number} (Draft ${draftIndex}) created with installation service calculated.`)
 }
 
 function duplicateQuotation(quote, project, patchProject, toast, onCreated) {
@@ -3247,6 +5769,79 @@ function Quotations({ project, patchProject, toast }) {
   const currentIndex = cleanQuotations.findIndex((item) => item.id === quote?.id)
   const savedStaffEntries = project.staffDrafts || []
 
+  // Fast in-memory working items state to eliminate typing input lag
+  const [workingItems, setWorkingItems] = useState(() => quote?.items || [])
+  const workingItemsRef = useRef(workingItems)
+  const pendingPatchTimerRef = useRef(null)
+
+  useEffect(() => {
+    if (pendingPatchTimerRef.current) {
+      clearTimeout(pendingPatchTimerRef.current)
+      pendingPatchTimerRef.current = null
+    }
+    const nextItems = quote?.items || []
+    setWorkingItems(nextItems)
+    workingItemsRef.current = nextItems
+  }, [quote?.id, quote?.items])
+
+  const flushPendingQuoteUpdates = useCallback(() => {
+    if (pendingPatchTimerRef.current) {
+      clearTimeout(pendingPatchTimerRef.current)
+      pendingPatchTimerRef.current = null
+      const currentItems = workingItemsRef.current
+      if (!quote) return
+      patchProject({
+        quotations: cleanQuotations.map((item) => {
+          if (item.id !== quote.id) return item
+          const discLine = currentItems.find((l) => isDiscountLine(l))
+          return {
+            ...item,
+            discount: discLine ? (Number(discLine.unitPrice) || 0) : item.discount,
+            items: currentItems
+          }
+        })
+      })
+    }
+  }, [cleanQuotations, quote, patchProject])
+
+  useEffect(() => {
+    return () => {
+      if (pendingPatchTimerRef.current) {
+        clearTimeout(pendingPatchTimerRef.current)
+        pendingPatchTimerRef.current = null
+        const currentItems = workingItemsRef.current
+        if (!quote) return
+        patchProject({
+          quotations: cleanQuotations.map((item) => {
+            if (item.id !== quote.id) return item
+            const discLine = currentItems.find((l) => isDiscountLine(l))
+            return {
+              ...item,
+              discount: discLine ? (Number(discLine.unitPrice) || 0) : item.discount,
+              items: currentItems
+            }
+          })
+        })
+      }
+    }
+  }, [cleanQuotations, quote, patchProject])
+
+  const switchDraft = useCallback((nextId) => {
+    if (!nextId || nextId === quoteId) return
+    flushPendingQuoteUpdates()
+    setQuoteId(nextId)
+  }, [flushPendingQuoteUpdates, quoteId])
+
+  const activeWorkingQuote = useMemo(() => {
+    if (!quote) return quote
+    const discLine = workingItems.find((l) => isDiscountLine(l))
+    return {
+      ...quote,
+      discount: discLine ? (Number(discLine.unitPrice) || 0) : quote.discount,
+      items: workingItems
+    }
+  }, [quote, workingItems])
+
   // Arrow key draft toggling when not typing in form fields
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -3256,20 +5851,21 @@ function Quotations({ project, patchProject, toast }) {
       if (e.key === 'ArrowLeft' && (e.altKey || !e.ctrlKey)) {
         if (currentIndex > 0) {
           e.preventDefault()
-          setQuoteId(cleanQuotations[currentIndex - 1].id)
+          switchDraft(cleanQuotations[currentIndex - 1].id)
         }
       } else if (e.key === 'ArrowRight' && (e.altKey || !e.ctrlKey)) {
         if (currentIndex < cleanQuotations.length - 1) {
           e.preventDefault()
-          setQuoteId(cleanQuotations[currentIndex + 1].id)
+          switchDraft(cleanQuotations[currentIndex + 1].id)
         }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [cleanQuotations, currentIndex])
+  }, [cleanQuotations, currentIndex, switchDraft])
 
   const deleteQuotation = (idToDelete) => {
+    flushPendingQuoteUpdates()
     const target = cleanQuotations.find((item) => item.id === idToDelete)
     if (!target) return
     const targetLabel = target.title ? `${target.title} (${target.id})` : target.id
@@ -3282,6 +5878,7 @@ function Quotations({ project, patchProject, toast }) {
   }
 
   const saveDraftTitle = (newTitle) => {
+    flushPendingQuoteUpdates()
     const trimmed = newTitle.trim()
     patchProject({
       quotations: cleanQuotations.map((item) =>
@@ -3292,28 +5889,103 @@ function Quotations({ project, patchProject, toast }) {
     toast(`Draft updated: ${trimmed || quote.id}`)
   }
 
-  const editLine = (lineId, change) => {
-    patchProject({
-      quotations: cleanQuotations.map((item) =>
-        item.id === quote.id
-          ? { ...item, items: item.items.map((line) => (line.id === lineId ? { ...line, ...change } : line)) }
-          : item
-      )
+  const editLine = useCallback((lineId, change) => {
+    setWorkingItems((prevItems) => {
+      let matched = false
+      const updated = prevItems.map((line) => {
+        if (line.id === lineId) {
+          matched = true
+          return { ...line, ...change }
+        }
+        return line
+      })
+      let finalItems = updated
+      if (!matched && String(lineId).startsWith('hardware-unified-')) {
+        const key = String(lineId).replace('hardware-unified-', '').replace(/-/g, ' ')
+        finalItems = prevItems.map((line) => {
+          if (isHardwareLine(line) && line.product?.toLowerCase().includes(key)) {
+            return { ...line, ...change }
+          }
+          return line
+        })
+      }
+      workingItemsRef.current = finalItems
+      return finalItems
     })
-  }
 
-  const deleteLine = (lineId) => {
-    patchProject({
-      quotations: cleanQuotations.map((item) =>
-        item.id === quote.id
-          ? { ...item, items: item.items.filter((line) => line.id !== lineId) }
-          : item
-      )
+    if (pendingPatchTimerRef.current) clearTimeout(pendingPatchTimerRef.current)
+    pendingPatchTimerRef.current = setTimeout(() => {
+      flushPendingQuoteUpdates()
+    }, 700)
+  }, [flushPendingQuoteUpdates])
+
+  const deleteLine = useCallback((lineId) => {
+    flushPendingQuoteUpdates()
+    const target = quote?.items?.find((i) => i.id === lineId)
+    const updatedQuotations = cleanQuotations.map((item) => {
+      if (item.id !== quote.id) return item
+      if (target && isInstallationServiceLine(target)) {
+        return { ...item, items: (item.items || []).filter((l) => l.id !== lineId && !isInstallationServiceLine(l)) }
+      }
+      if (target && isDeliveryServiceLine(target)) {
+        return { ...item, items: (item.items || []).filter((l) => l.id !== lineId && !isDeliveryServiceLine(l)) }
+      }
+      if (target && isDiscountLine(target)) {
+        return { ...item, discount: 0, items: (item.items || []).filter((l) => l.id !== lineId && !isDiscountLine(l)) }
+      }
+      return { ...item, items: (item.items || []).filter((line) => line.id !== lineId) }
     })
-    toast('Item removed from quotation.')
-  }
+    patchProject({ quotations: updatedQuotations })
+    const currentQ = updatedQuotations.find((q) => q.id === quote?.id)
+    if (currentQ) {
+      setWorkingItems(currentQ.items || [])
+      workingItemsRef.current = currentQ.items || []
+    }
+    toast(target?.product ? `${target.product} removed from quotation.` : 'Item removed from quotation.')
+  }, [cleanQuotations, quote, patchProject, toast, flushPendingQuoteUpdates])
+
+  const addServiceLine = useCallback((productName, defaultQuantity = 1, defaultPrice = 0, defaultNote = '') => {
+    flushPendingQuoteUpdates()
+    const isInst = isInstallationServiceLine({ product: productName })
+    const isDel = isDeliveryServiceLine({ product: productName })
+    const isDisc = isDiscountLine({ product: productName })
+    const newLine = {
+      id: uid('line'),
+      area: isDisc ? 'Billing' : 'Services',
+      product: isDisc ? 'Discount' : productName,
+      quantity: 1,
+      unitPrice: defaultPrice,
+      gst: isDisc ? 0 : 18,
+      isInstallationService: isInst,
+      isDeliveryService: isDel,
+      isDiscount: isDisc,
+      note: defaultNote || (isDisc ? 'Manual discount on untaxed amount' : '')
+    }
+    const updatedQuotations = cleanQuotations.map((item) => {
+      if (item.id !== quote.id) return item
+      const existing = (item.items || []).filter((l) => {
+        if (isInst && isInstallationServiceLine(l)) return false
+        if (isDel && isDeliveryServiceLine(l)) return false
+        if (isDisc && isDiscountLine(l)) return false
+        return true
+      })
+      return {
+        ...item,
+        discount: isDisc ? defaultPrice : item.discount,
+        items: [...existing, newLine]
+      }
+    })
+    patchProject({ quotations: updatedQuotations })
+    const currentQ = updatedQuotations.find((q) => q.id === quote?.id)
+    if (currentQ) {
+      setWorkingItems(currentQ.items || [])
+      workingItemsRef.current = currentQ.items || []
+    }
+    toast(`${productName} added to quotation.`)
+  }, [cleanQuotations, quote, patchProject, toast, flushPendingQuoteUpdates])
 
   const changeStatus = (status) => {
+    flushPendingQuoteUpdates()
     patchProject({
       quotations: cleanQuotations.map((item) => {
         if (item.id === quote.id) {
@@ -3330,6 +6002,7 @@ function Quotations({ project, patchProject, toast }) {
   }
 
   const mergeVersions = (sourceId, removeSource = true) => {
+    flushPendingQuoteUpdates()
     const source = cleanQuotations.find((q) => q.id === sourceId)
     if (!source || !quote) return
 
@@ -3365,6 +6038,11 @@ function Quotations({ project, patchProject, toast }) {
 
     const deduplicated = mergeDuplicateQuotations(nextQuotations)
     patchProject({ quotations: deduplicated })
+    const mergedCurrent = deduplicated.find((q) => q.id === quote.id)
+    if (mergedCurrent) {
+      setWorkingItems(mergedCurrent.items || [])
+      workingItemsRef.current = mergedCurrent.items || []
+    }
     setShowMergeModal(false)
     toast(`Merged ${sourceId} into ${quote.id}.`)
   }
@@ -3440,7 +6118,7 @@ function Quotations({ project, patchProject, toast }) {
                 id="quotation-draft-dropdown"
                 className="draft-dropdown-hero-select"
                 value={quote.id}
-                onChange={(e) => setQuoteId(e.target.value)}
+                onChange={(e) => switchDraft(e.target.value)}
                 title="Toggle around the different drafts of the quotation from this drop down"
                 aria-label="Toggle quotation draft from dropdown"
               >
@@ -3466,7 +6144,7 @@ function Quotations({ project, patchProject, toast }) {
                   title="Previous draft (Left Arrow / Alt+Left)"
                   aria-label="Previous draft"
                   disabled={currentIndex <= 0}
-                  onClick={() => setQuoteId(cleanQuotations[currentIndex - 1].id)}
+                  onClick={() => switchDraft(cleanQuotations[currentIndex - 1].id)}
                 >
                   <ChevronLeft size={16} />
                   <span>Prev</span>
@@ -3480,7 +6158,7 @@ function Quotations({ project, patchProject, toast }) {
                   title="Next draft (Right Arrow / Alt+Right)"
                   aria-label="Next draft"
                   disabled={currentIndex >= cleanQuotations.length - 1}
-                  onClick={() => setQuoteId(cleanQuotations[currentIndex + 1].id)}
+                  onClick={() => switchDraft(cleanQuotations[currentIndex + 1].id)}
                 >
                   <span>Next</span>
                   <ChevronRight size={16} />
@@ -3507,11 +6185,11 @@ function Quotations({ project, patchProject, toast }) {
                 aria-selected={isSelected}
                 tabIndex={0}
                 className={'draft-toggle-card' + (isSelected ? ' active' : '')}
-                onClick={() => setQuoteId(item.id)}
+                onClick={() => switchDraft(item.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    setQuoteId(item.id)
+                    switchDraft(item.id)
                   }
                 }}
               >
@@ -3619,7 +6297,7 @@ function Quotations({ project, patchProject, toast }) {
             id="active-bar-draft-select"
             className="active-bar-draft-select"
             value={quote.id}
-            onChange={(e) => setQuoteId(e.target.value)}
+            onChange={(e) => switchDraft(e.target.value)}
             title="Toggle draft of quotation from dropdown"
             aria-label="Toggle draft of quotation from dropdown"
           >
@@ -3635,32 +6313,54 @@ function Quotations({ project, patchProject, toast }) {
         </div>
 
         <div className="quote-actions">
-          {cleanQuotations.length > 1 && (
-            <button
-              type="button"
-              className="button secondary"
-              title="Compare all drafts side-by-side"
-              onClick={() => setShowCompareModal(true)}
-            >
-              <Layers size={15} />Compare drafts
-            </button>
-          )}
-          {cleanQuotations.length > 1 && (
-            <button
-              type="button"
-              className="button secondary"
-              title="Merge another quotation version into this quotation"
-              onClick={() => setShowMergeModal(true)}
-            >
-              <GitMerge size={15} />Merge versions
-            </button>
-          )}
-          <button type="button" className="button secondary" onClick={() => window.print()}>
+          <button type="button" className="button secondary" onClick={() => { flushPendingQuoteUpdates(); window.print() }}>
             <Printer size={15} />Print
           </button>
-          <button type="button" className="button secondary" onClick={() => window.print()}>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={async () => {
+              flushPendingQuoteUpdates()
+              if (typeof window !== 'undefined' && window.krishnaHub?.saveDocumentPdf) {
+                try {
+                  const unified = unifyQuoteItems(quote.items || [])
+                  const res = await window.krishnaHub.saveDocumentPdf({
+                    project,
+                    quote: { ...quote, items: unified },
+                    isInvoice: false,
+                    documentNumber: quote.id
+                  })
+                  if (res?.success) {
+                    toast('Quotation PDF saved successfully.')
+                  } else if (!res?.canceled) {
+                    window.print()
+                  }
+                } catch {
+                  window.print()
+                }
+              } else {
+                window.print()
+              }
+            }}
+          >
             <Download size={15} />PDF
           </button>
+          {typeof window !== 'undefined' && window.krishnaHub?.openProjectFolder && (
+            <button
+              type="button"
+              className="button secondary"
+              title="Open local drafts folder in Windows File Explorer"
+              onClick={async () => {
+                try {
+                  await window.krishnaHub.openProjectFolder(project.name, 'drafts')
+                } catch (err) {
+                  toast(err.message || 'Could not open drafts folder')
+                }
+              }}
+            >
+              <FolderOpen size={15} />Open Drafts Folder
+            </button>
+          )}
           {quote.status !== 'Approved' && (
             <button type="button" className="button primary" onClick={() => changeStatus('Approved')}>
               <CheckCircle2 size={15} />Approve draft
@@ -3680,55 +6380,615 @@ function Quotations({ project, patchProject, toast }) {
       </section>
 
       {/* 3. DOCUMENT SHEET */}
-      <DocumentSheet project={project} quote={quote} editable onEditLine={editLine} onDeleteLine={deleteLine} />
-
-      {/* 4. MODALS */}
-      {showMergeModal && (
-        <MergeQuotationsModal
-          currentQuote={quote}
-          allQuotations={cleanQuotations}
-          onClose={() => setShowMergeModal(false)}
-          onMerge={mergeVersions}
-        />
-      )}
-      {showCompareModal && (
-        <CompareDraftsModal
-          allQuotations={cleanQuotations}
-          currentQuoteId={quote.id}
-          onSelect={(selectedId) => setQuoteId(selectedId)}
-          onClose={() => setShowCompareModal(false)}
-        />
-      )}
+      <DocumentSheet project={project} quote={activeWorkingQuote || quote} editable onEditLine={editLine} onDeleteLine={deleteLine} onAddLine={addServiceLine} />
     </div>
   )
 }
 
 function Total({ label, value, total }) { return <div className={total ? 'total-line total' : 'total-line'}><span>{label}</span><strong>{currency(value)}</strong></div> }
 
-function DocumentSheet({ project, quote, editable = false, onEditLine, onDeleteLine, documentType = 'Quotation', documentNumber = quote.id }) {
+function formatQuotationCalculation(line) {
+  // Transparent mathematical formulas removed on quotations as requested
+  return ''
+}
+
+function cleanInvoiceProductName(name) {
+  if (!name) return ''
+  return String(name)
+    .replace(/\s*[-–—:]?\s*Measurement\s*\d+.*$/i, '')
+    .replace(/\s*\(Measurement\s*\d+.*?\)/gi, '')
+    .replace(/\s*[-–—:]?\s*⌈.*$/i, '')
+    .replace(/\s*[-–—:]?\s*Formula:.*$/i, '')
+    .replace(/\s*[-–—:]?\s*(?:Note|Notes|Spec|Specs|Specification|Specifications):.*$/i, '')
+    .replace(/\s*\((?:Note|Notes|Spec|Specs|Specification|Specifications).*?\)/gi, '')
+    .replace(/\s*[-–—:]?\s*\d+\s*(?:panels|drops|running ft|sq ft|fabric|mtr|m\b).*$/i, '')
+    .trim() || name
+}
+
+const EditableNumberInput = React.memo(function EditableNumberInput({
+  value,
+  placeholder,
+  ariaLabel,
+  onCommit,
+  step = 'any',
+  min = '0',
+  className,
+  style
+}) {
+  const [text, setText] = useState(() => (value !== undefined && value !== null && value !== 0 ? String(value) : (value === 0 ? '0' : '')))
+  const isFocusedRef = useRef(false)
+
+  useEffect(() => {
+    if (!isFocusedRef.current) {
+      setText(value !== undefined && value !== null && value !== 0 ? String(value) : (value === 0 ? '0' : ''))
+    }
+  }, [value])
+
+  const handleChange = (e) => {
+    const val = e.target.value
+    setText(val)
+    const parsed = val === '' ? 0 : Number(Number(e.target.value).toFixed(2))
+    onCommit?.(parsed, val)
+  }
+
+  const handleBlur = () => {
+    isFocusedRef.current = false
+    const parsed = text === '' ? 0 : Number(Number(text).toFixed(2))
+    onCommit?.(parsed, text)
+  }
+
+  const handleFocus = (e) => {
+    isFocusedRef.current = true
+    e?.target?.select?.()
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault()
+    }
+    if (e.key === 'Enter') {
+      e.currentTarget.blur()
+    }
+  }
+
+  return (
+    <input
+      type="number"
+      min={min}
+      step={step}
+      inputMode="decimal"
+      placeholder={placeholder}
+      aria-label={ariaLabel}
+      className={className}
+      style={{
+        MozAppearance: 'textfield',
+        WebkitAppearance: 'none',
+        appearance: 'textfield',
+        ...style
+      }}
+      value={text}
+      onFocus={handleFocus}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      onWheel={(e) => e.target.blur()}
+    />
+  )
+})
+
+const QuoteRow = React.memo(function QuoteRow({
+  line,
+  isSecondary = false,
+  isInvoice = false,
+  editable = false,
+  onEditLine,
+  onDeleteLine
+}) {
+  const showArea = line.area && line.area !== 'Hardware' && (!isSecondary || line.area !== 'Services')
+  const calcDescription = formatQuotationCalculation(line)
+
+  const handleQuantityCommit = useCallback((num) => {
+    onEditLine?.(line.id, { quantity: num })
+  }, [onEditLine, line.id])
+
+  const handlePriceCommit = useCallback((num) => {
+    onEditLine?.(line.id, { unitPrice: num })
+  }, [onEditLine, line.id])
+
+  const handleDelete = useCallback(() => {
+    onDeleteLine?.(line.id)
+  }, [onDeleteLine, line.id])
+
+  const lineTotal = (Number(line.quantity) || 0) * (Number(line.unitPrice) || 0)
+
+  return (
+    <tr>
+      <td>
+        <strong>{(showArea && !isInvoice ? line.area + ' - ' : '') + cleanInvoiceProductName(line.product)}</strong>
+        {!isInvoice && calcDescription && <small className="quotation-calc-note">{calcDescription}</small>}
+      </td>
+      <td>
+        {editable ? (
+          <EditableNumberInput
+            ariaLabel="Order quantity"
+            step="0.01"
+            placeholder="0"
+            value={line.quantity}
+            onCommit={handleQuantityCommit}
+          />
+        ) : (
+          <span>{quantity(line.quantity)} {unitLabel(line.product)}</span>
+        )}
+      </td>
+      <td>
+        {editable ? (
+          <div className="price-input">
+            <span>₹</span>
+            <EditableNumberInput
+              ariaLabel="Unit price"
+              placeholder="0"
+              value={line.unitPrice}
+              onCommit={handlePriceCommit}
+            />
+          </div>
+        ) : (
+          <span>{currency(line.unitPrice)}</span>
+        )}
+      </td>
+      <td><span>GST {line.gst}%</span></td>
+      <td><strong>{currency(lineTotal)}</strong></td>
+      {editable && (
+        <td className="document-action-col" style={{ textAlign: 'center' }}>
+          <button
+            type="button"
+            className="icon-button danger"
+            title="Remove line item"
+            aria-label="Remove line item"
+            onClick={handleDelete}
+          >
+            <Trash2 size={14} />
+          </button>
+        </td>
+      )}
+    </tr>
+  )
+})
+
+function DocumentSheet({ project, quote, editable = false, onEditLine, onDeleteLine, onAddLine, documentType = 'Quotation', documentNumber = quote.id }) {
   const unifiedItems = useMemo(() => unifyQuoteItems(quote.items || []), [quote.items])
-  const totals = getTotals(unifiedItems)
+  const totals = getTotals(unifiedItems, quote)
   const customerName = project.customer.name || 'Customer name'
   const address = project.customer.address || project.customer.location || 'Site address to be added'
   const isInvoice = documentType !== 'Quotation'
-  return <article className={'quotation-sheet document-sheet' + (isInvoice ? ' invoice-sheet' : '')}>
-    <header className="document-header">
-      <div className="document-company"><h2>Krishna Decor</h2><p>CTS NO-1813|B|2<br />Bapat Galli Car Parking<br /><strong>Belgaum-Karnataka</strong><br />Mob-9036674138<br />E-mail - krishna.decor2015@gmail.com</p><p className="document-customer">{customerName}<br /><span>{project.name}</span></p></div>
-      <div className="document-title"><div className="document-brand">KRISHNA DECOR</div><h1>{documentType} <span>#</span> {documentNumber}</h1>{quote?.title && !isInvoice && <span className="document-draft-tag">{quote.title}</span>}<p>GSTIN: 29AWZPK1722G1Z4</p></div>
-    </header>
-    <section className="document-details" aria-label={documentType + ' details'}><div><strong>{isInvoice ? 'Invoice Date' : 'Quotation Date'}</strong><span>{quote.date}</span></div><div><strong>{isInvoice ? 'Payment Terms' : 'Expiration'}</strong><span>{isInvoice ? 'As agreed' : 'Valid for 30 days'}</span></div><div><strong>{isInvoice ? 'Billing To' : 'Salesperson'}</strong><span>{isInvoice ? customerName : 'Krishna Decor'}</span></div></section>
-    <div className="document-table-shell"><table className="document-table"><thead><tr><th>Description</th><th>Quantity</th><th>Unit Price</th><th>Taxes</th><th>Amount</th>{editable && <th style={{ width: '40px', textAlign: 'center' }}></th>}</tr></thead><tbody>{unifiedItems.map((line) => <tr key={line.id}><td><strong>{line.area ? line.area + ' - ' : ''}{line.product}</strong>{line.note && <small>{line.note}</small>}</td><td>{editable ? <input aria-label="Order quantity" type="number" min="0" step="0.01" placeholder="0" value={line.quantity || ''} onChange={(e) => onEditLine(line.id, { quantity: e.target.value === '' ? 0 : Number(Number(e.target.value).toFixed(2)) })} /> : <span>{quantity(line.quantity)} {unitLabel(line.product)}</span>}</td><td>{editable ? <div className="price-input"><span>₹</span><input aria-label="Unit price" type="number" min="0" placeholder="0" value={line.unitPrice || ''} onChange={(e) => onEditLine(line.id, { unitPrice: e.target.value === '' ? 0 : Number(e.target.value) })} /></div> : <span>{currency(line.unitPrice)}</span>}</td><td><span>GST {line.gst}%</span></td><td><strong>{currency(line.quantity * line.unitPrice)}</strong></td>{editable && <td style={{ textAlign: 'center' }}><button type="button" className="icon-button danger" title="Remove line item" aria-label="Remove line item" onClick={() => onDeleteLine?.(line.id)}><Trash2 size={14} /></button></td>}</tr>)}</tbody></table></div>
-    <div className="document-summary"><section className="document-terms"><h3>Terms and conditions</h3><ol><li>NO CREDIT</li><li>70% advance payment</li><li>30% balance payment BEFORE DELIVERY</li><li>Minimum delivery time is 20 days.</li><li>Early delivery is not a commitment or guarantee.</li><li>Scaffolding, ladder and stools required for installation must be provided by the customer.</li></ol></section><section className="document-totals"><Total label="Untaxed Amount" value={totals.untaxed} /><Total label="SGST / UTGST" value={totals.tax / 2} /><Total label="CGST" value={totals.tax / 2} /><Total label="Total" value={totals.total} total /></section></div>
-    <footer className="document-footer"><div className="document-bank"><p>Bank Details</p><strong>KRISHNA DECOR</strong><span>Ac No 917020002479616<br />Axis Bank IFSC CODE UTIB0002941<br />Kadolkar Galli Branch</span></div><div className="document-signature"><p>I accept the above {documentType.toLowerCase()} with the terms and conditions.</p><span>Customer Signature</span></div></footer>
-  </article>
+
+  // Exclude installation, delivery and discount from product and secondary accessory tables
+  const productItems = useMemo(
+    () => unifiedItems.filter((item) => !isAccessoryOrServiceLine(item) && !isInstallationServiceLine(item) && !isDeliveryServiceLine(item) && !isDiscountLine(item)),
+    [unifiedItems]
+  )
+  const accessoryItems = useMemo(
+    () => unifiedItems.filter((item) => isAccessoryOrServiceLine(item) && !isInstallationServiceLine(item) && !isDeliveryServiceLine(item) && !isDiscountLine(item)),
+    [unifiedItems]
+  )
+
+  // Untaxed amount for base products and accessories, excluding installation, delivery and discount
+  const regularItemsUntaxed = useMemo(() => {
+    return unifiedItems
+      .filter((item) => !isInstallationServiceLine(item) && !isDeliveryServiceLine(item) && !isDiscountLine(item))
+      .reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0), 0)
+  }, [unifiedItems])
+
+  const breakdown = useMemo(() => calculateInstallationBreakdown(quote.items || [], project), [quote.items, project])
+  const discountLine = useMemo(() => (quote.items || []).find((item) => isDiscountLine(item)), [quote.items])
+  const installationLine = useMemo(() => (quote.items || []).find((item) => isInstallationServiceLine(item)), [quote.items])
+  const deliveryLine = useMemo(() => (quote.items || []).find((item) => isDeliveryServiceLine(item)), [quote.items])
+
+  const rawDiscount = useMemo(() => Number(discountLine?.unitPrice) || 0, [discountLine])
+  const applicableDiscount = useMemo(() => {
+    return Math.min(Math.max(0, rawDiscount), regularItemsUntaxed)
+  }, [rawDiscount, regularItemsUntaxed])
+  const isDiscountCapped = rawDiscount > regularItemsUntaxed && regularItemsUntaxed > 0
+
+  return (
+    <article
+      className={'quotation-sheet document-sheet' + (isInvoice ? ' invoice-sheet' : '')}
+      style={{ backgroundImage: `url(${documentBg})` }}
+    >
+      <div
+        className="document-page-bg"
+        aria-hidden="true"
+        style={{ backgroundImage: `url(${documentBg})` }}
+      />
+      <header className="document-header">
+        <div className="document-company">
+          <h2>Krishna Decor</h2>
+          <span className="document-tagline">SPACES DRESSED BEAUTIFULLY</span>
+          <p>CTS NO - 1813|2B|2<br />Bapat Galli Car Parking<br /><strong>Belgaum-Karnataka</strong><br />Mob - 9036674138<br />E-mail - krishna.decor2015@gmail.com</p>
+          <p className="document-customer"><strong>To:</strong> <strong className="customer-name">{customerName}</strong><br /><span>{project.name}</span></p>
+        </div>
+        <div className="document-title">
+          <h1 className="document-title-badge">
+            <span className="doc-type-name">{documentType}</span>
+            <span className="doc-hash">#</span>
+            <span className="doc-number-val">{documentNumber}</span>
+          </h1>
+          {quote?.title && !isInvoice && <span className="document-draft-tag">{quote.title}</span>}
+          <p>GSTIN: 29AWZPK1722G1Z4</p>
+        </div>
+      </header>
+      <section className="document-details" aria-label={documentType + ' details'}>
+        <div><strong>{isInvoice ? 'Invoice Date' : 'Quotation Date'}</strong><span>{quote.date}</span></div>
+        <div><strong>{isInvoice ? 'Payment Terms' : 'Expiration'}</strong><span>{isInvoice ? 'As agreed' : 'Valid for 30 days'}</span></div>
+        <div><strong>{isInvoice ? 'Billing To' : 'Salesperson'}</strong><span>{isInvoice ? customerName : 'Krishna Decor'}</span></div>
+      </section>
+
+      {/* 1. Main Products Table */}
+      <div className="document-table-shell">
+        <table className="document-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Taxes</th>
+              <th>Amount</th>
+              {editable && <th className="document-action-col" style={{ width: '40px', textAlign: 'center' }}></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {productItems.length === 0 ? (
+              <tr>
+                <td colSpan={editable ? 6 : 5} style={{ textAlign: 'center', padding: '14px', color: '#7a706b' }}>
+                  No product items in this document.
+                </td>
+              </tr>
+            ) : (
+              productItems.map((line) => (
+                <QuoteRow
+                  key={line.id}
+                  line={line}
+                  isSecondary={false}
+                  isInvoice={isInvoice}
+                  editable={editable}
+                  onEditLine={onEditLine}
+                  onDeleteLine={onDeleteLine}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 2. Secondary Table: Tracks, Runners, Hooks, Clamps, Stitching */}
+      {accessoryItems.length > 0 && (
+        <div className="document-table-shell secondary-table-shell">
+          <table className="document-table secondary">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Taxes</th>
+                <th>Amount</th>
+                {editable && <th className="document-action-col" style={{ width: '40px', textAlign: 'center' }}></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {accessoryItems.map((line) => (
+                <QuoteRow
+                  key={line.id}
+                  line={line}
+                  isSecondary={true}
+                  isInvoice={isInvoice}
+                  editable={editable}
+                  onEditLine={onEditLine}
+                  onDeleteLine={onDeleteLine}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="document-summary">
+        <section className="document-terms">
+          <h3>Terms and conditions</h3>
+          <ol>
+            <li>NO CREDIT</li>
+            <li>70% advance payment</li>
+            <li>30% balance payment BEFORE DELIVERY</li>
+            <li>Minimum delivery time is 20 days.</li>
+            <li>Early delivery is not a commitment or guarantee.</li>
+            <li>Scaffolding, ladder and stools required for installation must be provided by the customer.</li>
+          </ol>
+        </section>
+        <section className="document-totals">
+          <Total label="Untaxed Amount" value={regularItemsUntaxed} />
+
+          {/* Discount - appears just below Untaxed Amount */}
+          {discountLine && (editable || applicableDiscount > 0) && (
+            <div className="service-total-row discount-total-row">
+              <div className="service-total-header">
+                <div className="service-name-wrap">
+                  <strong>Discount</strong>
+                  <span className="discount-scope-badge">On Untaxed Amount</span>
+                </div>
+                {editable && (
+                  <button
+                    type="button"
+                    className="service-delete-btn"
+                    title="Delete Discount from quotation"
+                    aria-label="Delete Discount from quotation"
+                    onClick={() => onDeleteLine?.(discountLine.id)}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+
+              <div className="service-formula-hint">
+                Applicable only to untaxed amount (max {currency(regularItemsUntaxed)})
+              </div>
+
+              <div className="service-calculation-line">
+                {editable ? (
+                  <div className="service-inputs-wrap">
+                    <label className="service-inline-field discount-charge-field">
+                      <span>Manual Discount (₹)</span>
+                      <EditableNumberInput
+                        ariaLabel="Discount amount"
+                        step="any"
+                        min="0"
+                        placeholder="0"
+                        value={discountLine.unitPrice}
+                        onCommit={(num) => onEditLine?.(discountLine.id, { unitPrice: num })}
+                      />
+                    </label>
+                    {isDiscountCapped && (
+                      <span className="discount-capped-badge" title={`Entered discount exceeds untaxed amount (${currency(regularItemsUntaxed)}). Discount is capped at untaxed amount.`}>
+                        Capped at untaxed
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="service-qty-rate-read">Manual discount on untaxed amount</span>
+                )}
+                <strong className="service-amount-val discount-val">
+                  {applicableDiscount > 0 ? `-${currency(applicableDiscount)}` : currency(0)}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          {/* Installation - appears exactly below Untaxed Amount */}
+          {installationLine && (
+            <div className="service-total-row installation-service-row">
+              <div className="service-total-header">
+                <div className="service-name-wrap">
+                  <strong>Installation</strong>
+                  <span className="service-tax-badge">GST {installationLine.gst || 18}%</span>
+                </div>
+                {editable && (
+                  <button
+                    type="button"
+                    className="service-delete-btn"
+                    title="Delete Installation from quotation"
+                    aria-label="Delete Installation from quotation"
+                    onClick={() => onDeleteLine?.(installationLine.id)}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+
+              <div className="service-formula-hint">
+                Formula: {breakdown.numTracks} track{breakdown.numTracks === 1 ? '' : 's'} + {breakdown.numBlinds} blind{breakdown.numBlinds === 1 ? '' : 's'} = {installationLine.quantity} units
+              </div>
+
+              <div className="service-calculation-line">
+                {editable ? (
+                  <div className="service-inputs-wrap">
+                    <label className="service-inline-field">
+                      <span>Qty</span>
+                      <EditableNumberInput
+                        ariaLabel="Installation quantity"
+                        step="1"
+                        min="0"
+                        placeholder="0"
+                        value={installationLine.quantity}
+                        onCommit={(num) => onEditLine?.(installationLine.id, { quantity: num })}
+                      />
+                    </label>
+                    <span className="service-mul-symbol">×</span>
+                    <label className="service-inline-field">
+                      <span>Rate (₹)</span>
+                      <EditableNumberInput
+                        ariaLabel="Installation unit price"
+                        step="any"
+                        min="0"
+                        placeholder="0"
+                        value={installationLine.unitPrice}
+                        onCommit={(num) => onEditLine?.(installationLine.id, { unitPrice: num })}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <span className="service-qty-rate-read">
+                    {installationLine.quantity} units × {currency(installationLine.unitPrice)}
+                  </span>
+                )}
+                <strong className="service-amount-val">
+                  {currency((Number(installationLine.quantity) || 0) * (Number(installationLine.unitPrice) || 0))}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          {/* Delivery - appears below Installation */}
+          {deliveryLine && (
+            <div className="service-total-row delivery-service-row">
+              <div className="service-total-header">
+                <div className="service-name-wrap">
+                  <strong>Delivery</strong>
+                  <span className="service-tax-badge">GST {deliveryLine.gst || 18}%</span>
+                </div>
+                {editable && (
+                  <button
+                    type="button"
+                    className="service-delete-btn"
+                    title="Delete Delivery from quotation"
+                    aria-label="Delete Delivery from quotation"
+                    onClick={() => onDeleteLine?.(deliveryLine.id)}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+
+              <div className="service-calculation-line">
+                {editable ? (
+                  <div className="service-inputs-wrap">
+                    <label className="service-inline-field delivery-charge-field">
+                      <span>Manual Delivery Charge (₹)</span>
+                      <EditableNumberInput
+                        ariaLabel="Delivery charge"
+                        step="any"
+                        min="0"
+                        placeholder="0"
+                        value={deliveryLine.unitPrice}
+                        onCommit={(num) => onEditLine?.(deliveryLine.id, { unitPrice: num })}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <span className="service-qty-rate-read">Manual delivery</span>
+                )}
+                <strong className="service-amount-val">
+                  {currency((Number(deliveryLine.quantity) || 1) * (Number(deliveryLine.unitPrice) || 0))}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          {/* Quick-add actions when Discount, Installation or Delivery has been deleted */}
+          {editable && (!discountLine || !installationLine || !deliveryLine) && (
+            <div className="service-add-bar">
+              {!discountLine && (
+                <button
+                  type="button"
+                  className="service-add-pill-btn discount-add-btn"
+                  title="Add manual discount on untaxed amount"
+                  onClick={() => onAddLine?.('Discount', 1, 0, 'Manual discount on untaxed amount')}
+                >
+                  <Plus size={13} />
+                  <span>+ Add Discount</span>
+                </button>
+              )}
+              {!installationLine && (
+                <button
+                  type="button"
+                  className="service-add-pill-btn"
+                  title="Add installation to quotation based on track and blind count"
+                  onClick={() => onAddLine?.('Installation', breakdown.totalInstallation || 1, 0, `Formula: ${breakdown.numTracks} tracks + ${breakdown.numBlinds} blinds`)}
+                >
+                  <Plus size={13} />
+                  <span>+ Add Installation{breakdown.totalInstallation > 0 ? ` (${breakdown.totalInstallation} units)` : ''}</span>
+                </button>
+              )}
+              {!deliveryLine && (
+                <button
+                  type="button"
+                  className="service-add-pill-btn"
+                  title="Add manual delivery charge to quotation"
+                  onClick={() => onAddLine?.('Delivery', 1, 0, 'Manual delivery charge')}
+                >
+                  <Plus size={13} />
+                  <span>+ Add Delivery</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          <Total label="SGST / UTGST" value={totals.tax / 2} />
+          <Total label="CGST" value={totals.tax / 2} />
+          <Total label="Total" value={totals.total} total />
+        </section>
+      </div>
+      <footer className="document-footer">
+        <div className="document-bank">
+          <p>Bank Details</p>
+          <strong>KRISHNA DECOR</strong>
+          <span>Ac No 917020002479616<br />Axis Bank IFSC CODE UTIB0002941<br />Kadolkar Galli Branch</span>
+        </div>
+        <div className="document-signature">
+          <p>I accept the above {documentType.toLowerCase()} with the terms and conditions.</p>
+          <span>Customer Signature</span>
+        </div>
+      </footer>
+    </article>
+  )
 }
 
 function Invoice({ project, toast }) {
-  const approved = project.quotations.find((quote) => quote.status === 'Approved')
+  const approved = (project.quotations || []).find((quote) => quote.status === 'Approved')
   if (!approved) return <section className="panel invoice-state"><span className="state-icon"><Clock3 size={25} /></span><p className="eyebrow">WAITING FOR APPROVAL</p><h2>Approve a quotation first</h2><p>Invoices are intentionally restricted to approved quotations, so the billing record always matches the agreed scope.</p><button className="button secondary" onClick={() => toast('Open Quotations and mark the client-approved version.')}>View quotations</button></section>
-  const invoiceNumber = 'INV-' + approved.id.replace(/^KD-/, '')
-  return <div className="quotation-layout invoice-layout"><div className="quote-controls panel"><span className="status-badge approved">Approved quotation</span><div className="quote-actions"><button className="button secondary" onClick={() => window.print()}><Printer size={16} />Print bill</button><button className="button secondary" onClick={() => window.print()}><Download size={16} />Save PDF</button></div></div><DocumentSheet project={project} quote={approved} documentType="Tax Invoice" documentNumber={invoiceNumber} /></div>
+  const invoiceNumber = approved.id.startsWith('KD') ? approved.id : 'KD-' + approved.id.replace(/^INV-?/, '')
+  return (
+    <div className="quotation-layout invoice-layout">
+      <div className="quote-controls panel">
+        <span className="status-badge approved">Approved quotation</span>
+        <div className="quote-actions">
+          <button
+            type="button"
+            className="button secondary"
+            onClick={async () => {
+              if (typeof window !== 'undefined' && window.krishnaHub?.saveDocumentPdf) {
+                try {
+                  const unified = unifyQuoteItems(approved.items || [])
+                  const res = await window.krishnaHub.saveDocumentPdf({
+                    project,
+                    quote: { ...approved, items: unified },
+                    isInvoice: true,
+                    documentNumber: invoiceNumber
+                  })
+                  if (res?.success) {
+                    toast('Invoice PDF saved successfully.')
+                  } else if (!res?.canceled) {
+                    window.print()
+                  }
+                } catch {
+                  window.print()
+                }
+              } else {
+                window.print()
+              }
+            }}
+          >
+            <Download size={16} />Save PDF
+          </button>
+          {typeof window !== 'undefined' && window.krishnaHub?.openProjectFolder && (
+            <button
+              type="button"
+              className="button secondary"
+              title="Open local invoice folder in Windows File Explorer"
+              onClick={async () => {
+                try {
+                  await window.krishnaHub.openProjectFolder(project.name, 'invoice')
+                } catch (err) {
+                  toast(err.message || 'Could not open invoice folder')
+                }
+              }}
+            >
+              <FolderOpen size={16} />Open Invoice Folder
+            </button>
+          )}
+        </div>
+      </div>
+      <DocumentSheet project={project} quote={approved} documentType="Tax Invoice" documentNumber={invoiceNumber} />
+    </div>
+  )
 }
+
 
 function Payments({ project, patchProject, toast }) {
   const quote = project.quotations.find((item) => item.status === 'Approved')
@@ -3736,7 +6996,7 @@ function Payments({ project, patchProject, toast }) {
   const received = project.payments.reduce((sum, payment) => payment.state === 'Received' ? sum + Number(payment.amount) : sum, 0)
   const outstanding = Math.max(0, total - received)
   const canRecordPayment = Boolean(quote) && outstanding > 0
-  const defaultInvoiceNo = quote ? 'INV-' + quote.id.replace(/^KD-/, '') : ''
+  const defaultInvoiceNo = quote ? (quote.id.startsWith('KD') ? quote.id : 'KD-' + quote.id.replace(/^INV-?/, '')) : ''
 
   const defaultPaymentState = {
     label: 'Advance payment',
@@ -3893,7 +7153,7 @@ function Payments({ project, patchProject, toast }) {
                 </div>
                 <input
                   type="text"
-                  placeholder={defaultInvoiceNo ? `${defaultInvoiceNo} (Optional)` : 'e.g. INV-015 (Optional)'}
+                  placeholder={defaultInvoiceNo ? `${defaultInvoiceNo} (Optional)` : 'e.g. KD-015 (Optional)'}
                   value={payment.invoiceNumber}
                   onChange={(e) => setPayment({ ...payment, invoiceNumber: e.target.value })}
                 />
@@ -3930,7 +7190,7 @@ function Payments({ project, patchProject, toast }) {
                 </div>
                 <input
                   type="text"
-                  placeholder={defaultInvoiceNo ? `${defaultInvoiceNo} (Optional)` : 'e.g. INV-015 (Optional)'}
+                  placeholder={defaultInvoiceNo ? `${defaultInvoiceNo} (Optional)` : 'e.g. KD-015 (Optional)'}
                   value={payment.invoiceNumber}
                   onChange={(e) => setPayment({ ...payment, invoiceNumber: e.target.value })}
                 />
@@ -4052,6 +7312,14 @@ function Empty({ label, action, onClick }) { return <div className="empty-state"
 function NewProjectModal({ onClose, onCreate }) {
   const [values, setValues] = useState({ name: '', customer: '' })
   return <div className="modal-layer" onMouseDown={onClose}><form className="modal" onSubmit={(e) => { e.preventDefault(); onCreate(values) }} onMouseDown={(e) => e.stopPropagation()}><button type="button" className="modal-close" onClick={onClose}><X size={18} /></button><span className="modal-kicker">NEW PROJECT</span><h2>Set up a project</h2><p>Start with a project name. Customer details can be completed in the next step.</p><Field label="Project name" value={values.name} placeholder="e.g. Mehta Residence" onChange={(e) => setValues({ ...values, name: e.target.value })} /><Field label="Customer name (optional)" value={values.customer} placeholder="e.g. Priya Mehta" onChange={(e) => setValues({ ...values, customer: e.target.value })} /><div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Cancel</button><button type="submit" className="button primary">Create project <ArrowUpRight size={16} /></button></div></form></div>
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('wheel', () => {
+    if (document.activeElement && document.activeElement.type === 'number') {
+      document.activeElement.blur()
+    }
+  }, { passive: true })
 }
 
 createRoot(document.getElementById('root')).render(<App />)

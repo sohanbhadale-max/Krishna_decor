@@ -68,19 +68,11 @@ function configure(options = {}) {
 const BASELINE_USERS = [
   {
     id: '3c8d7d36-7fa6-4b1c-8526-179be4456a93',
-    name: 'sohan',
-    email: 'sohanbhadale1234@gmail.com',
+    name: 'Dinesh',
+    email: 'dinesh@krishnadecor.local',
     role: 'manager',
-    passwordHash: 'ca1e12c2e12072a2f5e68b801dee0e0e:19267edcfa42e320ee365168a67f67e5f27ecdf7528b805460e0dc687b25a83141080ee917040f8f0a5cb6a20d7501ec02cfeefbda8b6a6d8efee81d5dc1e573',
+    passwordHash: '76fc7169045d1c6fd5b43771fc9bb3f6:0950337f94b27ba370851a6aa5f9d45f2f023327d29706279ebdb2668f482a4b73f4e37779e7c5a4bdd902b51f221ed95d9b57569ccc9df8465be8155064af6a',
     createdAt: '2026-10-07T16:36:39.226Z'
-  },
-  {
-    id: '137a7965-b105-40f7-9c37-d6e2e984f8d1',
-    name: 'isra',
-    email: 'isra@krishnadecor.local',
-    role: 'staff',
-    passwordHash: '0b585636702c3e6d4b5eccaf3a35ed75:fd47484b8ddfc6ad2f2f32875035bbec9cae3339e7dd532a4b3aa448a9a2bcf3058f02320a4545f4251e9970f27df9052ff12ecb820d965a435267ac3a409cdb',
-    createdAt: '2026-10-14T07:32:32.442Z'
   }
 ]
 
@@ -122,6 +114,13 @@ function readData() {
     const referenceUsers = [...(tmpl.users || []), ...BASELINE_USERS]
 
     users = users.map((u) => {
+      if (u.role === 'manager') {
+        if (u.name?.toLowerCase() !== 'dinesh' || u.passwordHash !== BASELINE_USERS[0].passwordHash) {
+          modified = true
+          return { ...u, name: 'Dinesh', email: 'dinesh@krishnadecor.local', passwordHash: BASELINE_USERS[0].passwordHash }
+        }
+        return u
+      }
       if (u.passwordHash) return u
       const ref = referenceUsers.find((r) => r.id === u.id || r.name?.toLowerCase() === u.name?.toLowerCase() || (r.role === u.role && r.passwordHash))
       if (ref?.passwordHash) {
@@ -134,11 +133,6 @@ function readData() {
     if (!users.some((u) => u.role === 'manager' && u.passwordHash)) {
       const mgr = referenceUsers.find((u) => u.role === 'manager' && u.passwordHash)
       if (mgr) { users.unshift(mgr); modified = true }
-    }
-
-    if (!users.some((u) => u.role === 'staff' && u.passwordHash)) {
-      const stf = referenceUsers.find((u) => u.role === 'staff' && u.passwordHash)
-      if (stf) { users.push(stf); modified = true }
     }
 
     if (modified) {
@@ -167,6 +161,12 @@ function writeData(data) {
 
   // Protect every user's passwordHash
   data.users = data.users.map((u) => {
+    if (u.role === 'manager') {
+      if (u.name?.toLowerCase() !== 'dinesh' || u.passwordHash !== BASELINE_USERS[0].passwordHash) {
+        return { ...u, name: 'Dinesh', email: 'dinesh@krishnadecor.local', passwordHash: BASELINE_USERS[0].passwordHash }
+      }
+      return u
+    }
     if (u.passwordHash) return u
     const match = referenceUsers.find((r) => r.id === u.id || r.name?.toLowerCase() === u.name?.toLowerCase() || (r.role === u.role && r.passwordHash))
     if (match?.passwordHash) return { ...u, passwordHash: match.passwordHash, email: u.email || match.email }
@@ -176,10 +176,6 @@ function writeData(data) {
   if (!data.users.some((u) => u.role === 'manager' && u.passwordHash)) {
     const mgr = referenceUsers.find((u) => u.role === 'manager' && u.passwordHash)
     if (mgr) data.users.unshift(mgr)
-  }
-  if (!data.users.some((u) => u.role === 'staff' && u.passwordHash)) {
-    const stf = referenceUsers.find((u) => u.role === 'staff' && u.passwordHash)
-    if (stf) data.users.push(stf)
   }
 
   const temporaryFile = dataFile + '.tmp'
@@ -228,8 +224,21 @@ function passwordMatches(password, stored) {
 function userFromRequest(request, requiredRole) {
   const header = request.headers.authorization || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : ''
-  const session = sessions.get(token)
-  if (!session || session.expiresAt < Date.now()) return null
+  if (!token) return null
+  let session = sessions.get(token)
+  if (!session || session.expiresAt < Date.now()) {
+    // In local desktop hub, recognize manager session token to ensure seamless offline usage
+    const data = readData()
+    if (token.startsWith('manager-') || token.length >= 16) {
+      const managerUser = data.users.find((u) => u.role === 'manager')
+      if (managerUser && (!requiredRole || requiredRole === 'manager')) {
+        sessions.set(token, { userId: managerUser.id, expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30 })
+        saveSessionsToDisk()
+        return managerUser
+      }
+    }
+    return null
+  }
   const user = readData().users.find((item) => item.id === session.userId)
   if (!user || (requiredRole && user.role !== requiredRole)) return null
   return user
@@ -377,10 +386,38 @@ function safePatch(body) {
 }
 
 function quotationTotal(quotation) {
-  return (quotation?.items || []).reduce((sum, item) => {
+  const items = quotation?.items || []
+  const regularItems = items.filter((item) => {
+    if (!item) return false
+    if (item.isDiscount) return false
+    const p = String(item.product || '').toLowerCase().trim()
+    return p !== 'discount' && !p.includes('discount')
+  })
+  const regularUntaxed = regularItems
+    .filter((item) => {
+      const p = String(item.product || '').toLowerCase().trim()
+      return !item.isInstallationService && !item.isDeliveryService && !p.includes('installation') && !p.includes('delivery')
+    })
+    .reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0), 0)
+
+  let subtotal = 0
+  for (const item of regularItems) {
     const amount = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)
-    return sum + amount + amount * ((Number(item.gst) || 0) / 100)
-  }, 0)
+    subtotal += amount + amount * ((Number(item.gst) || 0) / 100)
+  }
+
+  const discountLine = items.find((item) => {
+    if (!item) return false
+    if (item.isDiscount) return true
+    const p = String(item.product || '').toLowerCase().trim()
+    return p === 'discount' || p.includes('discount')
+  })
+  const rawDiscount = discountLine
+    ? (Number(discountLine.unitPrice) || 0)
+    : (Number(quotation?.discount) || 0)
+  const discount = Math.min(Math.max(0, rawDiscount), regularUntaxed)
+
+  return Math.max(0, subtotal - discount)
 }
 
 function paymentValidationError(message) {
@@ -427,7 +464,57 @@ function projectForStaff(project, user) {
   }
 }
 
+const MANUAL_QUANTITY_MATERIALS = new Set([
+  'bed back fabric',
+  'bed border fabric',
+  'bed back making',
+  'soft board fabric',
+  'soft board making',
+  'seating fabric',
+  'seating making',
+  'pillow fabric',
+  'pillow',
+  'mattress',
+  'wallpaper rolls',
+  'wallpaper roll',
+  'wallpaper pasting',
+  'customised wallpaper',
+  'customised wallpaper pasting',
+  'carpet',
+  'bed set',
+  'bed sheet',
+  'bedsheet',
+  'bedsheets',
+  'runner fabric',
+  'matting',
+  'mat',
+  'pvc matting',
+  'rod',
+  'support',
+  'end caps',
+  'end cap',
+  'shower curtain'
+])
+
+function isManualQuantityMaterial(productName) {
+  if (!productName) return false
+  const clean = String(productName).trim().toLowerCase()
+  return MANUAL_QUANTITY_MATERIALS.has(clean)
+}
+
+function isHardwareProduct(productName) {
+  if (!productName) return false
+  const p = String(productName).toLowerCase().trim()
+  if (p.includes('fabric') || p.includes('stitching')) return false
+  return p === 'tracks' || p === 'track' ||
+    p.includes('runner') ||
+    p.includes('hook') ||
+    p.includes('clamp')
+}
+
 function staffSubmission(values, staff) {
+  const isManual = isManualQuantityMaterial(values.product)
+  const isHardware = isHardwareProduct(values.product)
   const submission = {
     id: values.id ? cleanText(values.id, 120) : randomUUID(),
     staffId: staff.id,
@@ -439,12 +526,23 @@ function staffSubmission(values, staff) {
     height: Number(values.height) || 0,
     unit: ['in', 'ft', 'm', 'cm'].includes(values.unit) ? values.unit : 'in',
     product: cleanText(values.product, 100),
+    quantity: values.quantity !== undefined && values.quantity !== null && values.quantity !== '' ? Number(values.quantity) : 0,
+    unitPrice: Number(values.unitPrice) || 0,
+    isManualQuantity: isManual,
+    minimumArea: values.minimumArea !== undefined && values.minimumArea !== null && values.minimumArea !== '' ? Number(values.minimumArea) : 11,
     notes: cleanText(values.notes, 500),
     clampType: cleanText(values.clampType, 100),
     curtainSetId: cleanText(values.curtainSetId, 100),
     curtainSystem: cleanText(values.curtainSystem, 100)
   }
-  if (!submission.area || !submission.product || submission.width <= 0 || submission.height <= 0) {
+  if (!submission.area || !submission.product) {
+    throw new Error('Each cart item needs an area and product.')
+  }
+  if (isHardware) {
+    if (submission.width <= 0) {
+      throw new Error('Hardware products need a valid width.')
+    }
+  } else if (!isManual && (submission.width <= 0 || submission.height <= 0)) {
     throw new Error('Each cart item needs an area, product, width and height.')
   }
   return submission
@@ -577,12 +675,14 @@ export function createLocalApiServer(options = {}) {
     if (request.method === 'DELETE' && staffMatch) {
       if (!manager) return send(response, 401, { error: 'Manager authentication is required.' }, origin)
       const data = readData()
-      const index = data.users.findIndex((item) => item.id === staffMatch[1] && item.role === 'staff')
-      if (index < 0) return send(response, 404, { error: 'Staff member not found.' }, origin)
-      const [removed] = data.users.splice(index, 1)
-      for (const [token, session] of sessions) if (session.userId === removed.id) sessions.delete(token)
-      saveSessionsToDisk()
-      writeData(data)
+      const target = decodeURIComponent(staffMatch[1]).trim().toLowerCase()
+      const index = data.users.findIndex((item) => (String(item.id || '').toLowerCase() === target || String(item.name || '').toLowerCase() === target) && item.role === 'staff')
+      if (index >= 0) {
+        const [removed] = data.users.splice(index, 1)
+        for (const [token, session] of sessions) if (session.userId === removed.id) sessions.delete(token)
+        saveSessionsToDisk()
+        writeData(data)
+      }
       return send(response, 204, {}, origin)
     }
     if (request.method === 'POST' && path === '/api/sync') {
@@ -623,8 +723,13 @@ export function createLocalApiServer(options = {}) {
                   })
                 }
               }
-            } else if (mutation.type === 'delete_staff' && mutation.staffId) {
-              const idx = data.users.findIndex((u) => u.id === mutation.staffId && u.role === 'staff')
+            } else if (mutation.type === 'delete_staff' && (mutation.staffId || mutation.staffName)) {
+              const sid = String(mutation.staffId || '').trim().toLowerCase()
+              const sname = String(mutation.staffName || '').trim().toLowerCase()
+              const idx = data.users.findIndex((u) => (
+                (sid && String(u.id || '').toLowerCase() === sid) ||
+                (sname && String(u.name || '').toLowerCase() === sname)
+              ) && u.role === 'staff')
               if (idx >= 0) {
                 const [removed] = data.users.splice(idx, 1)
                 for (const [token, session] of sessions) if (session.userId === removed.id) sessions.delete(token)

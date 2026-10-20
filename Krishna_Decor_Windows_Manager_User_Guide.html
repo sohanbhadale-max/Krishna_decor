@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Krishna Decor — Windows Manager App User Guide</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm 14mm 16mm 14mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.55;
+      color: #1a2530;
+      background: #ffffff;
+      padding: 0;
+    }
+
+    /* Cover / Header Section */
+    .header-banner {
+      background: linear-gradient(135deg, #001D39 0%, #0A4174 100%);
+      color: #ffffff;
+      padding: 24px 28px;
+      border-radius: 8px;
+      margin-bottom: 22px;
+      border-bottom: 3px solid #C5A880;
+    }
+
+    .brand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .brand-title {
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: 26pt;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      line-height: 1.1;
+    }
+
+    .brand-tagline {
+      font-size: 8.5pt;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #BDD8E9;
+      margin-top: 3px;
+      font-weight: 600;
+    }
+
+    .badge-doc {
+      background: rgba(197, 168, 128, 0.25);
+      border: 1px solid #C5A880;
+      color: #f7e7d2;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 8pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .doc-main-title {
+      font-size: 17pt;
+      font-weight: 700;
+      margin-top: 8px;
+      color: #ffffff;
+      line-height: 1.25;
+    }
+
+    .doc-subtitle {
+      font-size: 9.5pt;
+      color: #d2e4f0;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .meta-bar {
+      display: flex;
+      gap: 18px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(189, 216, 233, 0.25);
+      font-size: 8pt;
+      color: #BDD8E9;
+    }
+
+    .meta-bar strong {
+      color: #ffffff;
+    }
+
+    /* Table of Contents */
+    .toc-card {
+      background: #F4F8FA;
+      border: 1px solid #D0E2EE;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin-bottom: 22px;
+      break-inside: avoid;
+    }
+
+    .toc-card h3 {
+      font-size: 11pt;
+      color: #001D39;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #D0E2EE;
+      padding-bottom: 5px;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 16px;
+      font-size: 9pt;
+    }
+
+    .toc-item {
+      color: #0A4174;
+      text-decoration: none;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Section Styling */
+    .section {
+      margin-bottom: 22px;
+      break-inside: auto;
+    }
+
+    .section-title {
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: 13.5pt;
+      color: #001D39;
+      border-bottom: 2px solid #0A4174;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      break-after: avoid;
+    }
+
+    .section-num {
+      background: #0A4174;
+      color: #ffffff;
+      font-family: -apple-system, sans-serif;
+      font-size: 9pt;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+
+    h3 {
+      font-size: 11pt;
+      color: #0A4174;
+      margin: 12px 0 6px;
+      break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 8px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin: 6px 0 10px 20px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    /* Callout & Cards */
+    .callout-box {
+      background: #fdfaf6;
+      border-left: 3.5px solid #C5A880;
+      border-radius: 0 5px 5px 0;
+      padding: 9px 13px;
+      margin: 10px 0;
+      font-size: 9.5pt;
+      break-inside: avoid;
+    }
+
+    .callout-box strong {
+      color: #001D39;
+    }
+
+    .callout-blue {
+      background: #f0f6fa;
+      border-left: 3.5px solid #0A4174;
+    }
+
+    /* Formula Cards */
+    .formula-card {
+      background: #f4f8fb;
+      border: 1px solid #cfe0ed;
+      border-radius: 5px;
+      padding: 10px 14px;
+      margin: 9px 0;
+      break-inside: avoid;
+    }
+
+    .formula-title {
+      font-weight: 700;
+      color: #001D39;
+      font-size: 9.5pt;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .formula-math {
+      font-family: "Consolas", "Courier New", monospace;
+      background: #ffffff;
+      border: 1px solid #d8e6f0;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 9.5pt;
+      color: #0A4174;
+      margin: 4px 0;
+      font-weight: 600;
+    }
+
+    .formula-desc {
+      font-size: 8.5pt;
+      color: #55697a;
+      margin-top: 4px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px;
+      font-size: 9pt;
+      break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #d4e2ec;
+      padding: 6px 9px;
+      text-align: left;
+    }
+
+    th {
+      background: #001D39;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 8.5pt;
+      letter-spacing: 0.3px;
+    }
+
+    tr:nth-child(even) td {
+      background: #f9fbfd;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+      font-weight: 600;
+    }
+
+    .badge-green { background: #e2f4e8; color: #166534; }
+    .badge-blue { background: #e0f2fe; color: #075985; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+
+    /* Footer */
+    .doc-footer {
+      border-top: 1px solid #d4e2ec;
+      padding-top: 8px;
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8pt;
+      color: #728493;
+      break-inside: avoid;
+    }
+
+    .page-break {
+      break-before: page;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover / Header Banner -->
+  <header class="header-banner">
+    <div class="brand-row">
+      <div>
+        <div class="brand-title">Krishna Decor</div>
+        <div class="brand-tagline">Spaces Dressed Beautifully</div>
+      </div>
+      <div class="badge-doc">Official User Guide</div>
+    </div>
+    <div class="doc-main-title">Windows Desktop Manager App</div>
+    <div class="doc-subtitle">Comprehensive Operating Manual: Cost Estimator, Field Staff Sync, Quotation Flows, Tax Invoices & Local Data Backups</div>
+    <div class="meta-bar">
+      <div><strong>Platform:</strong> Windows 10 / 11 (Desktop Hub)</div>
+      <div><strong>Document Version:</strong> 1.0 (Production)</div>
+      <div><strong>Belgaum Location:</strong> CTS No 1813|2B|2, Bapat Galli</div>
+      <div><strong>Support:</strong> +91 9036674138</div>
+    </div>
+  </header>
+
+  <!-- Table of Contents -->
+  <nav class="toc-card">
+    <h3>Table of Contents</h3>
+    <div class="toc-grid">
+      <div>1. Overview & Desktop Shell Architecture</div>
+      <div>7. Field Staff Coordination & Draft Ingestion</div>
+      <div>2. Getting Started & Sign-In</div>
+      <div>8. Quotations: Generation, Editing & Math Derivation</div>
+      <div>3. Project & Customer Profile Management</div>
+      <div>9. Tax Invoicing, Commercial Billing & PDF Export</div>
+      <div>4. Rooms, Spaces & Multi-Measurement Openings</div>
+      <div>10. Payment Logging & Overpayment Prevention</div>
+      <div>5. Materials Catalog & Automated Cost Formulas</div>
+      <div>11. Windows Desktop Hub: Sync & Local Backups</div>
+      <div>6. Automatic Curtain Hardware Calculations</div>
+      <div>12. Keyboard Shortcuts & Quick Reference</div>
+    </div>
+  </nav>
+
+  <!-- Section 1 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">01</span> Overview & Desktop Shell Architecture</h2>
+    <p>
+      The <strong>Krishna Decor Windows Desktop Manager App</strong> serves as the central administrative hub for business owners and project managers. Built as a high-performance native desktop application with an integrated local background hub, it manages design projects, on-site measurements, fabric estimations, client quotations, and commercial tax invoicing.
+    </p>
+    <div class="callout-box callout-blue">
+      <strong>Core Architectural Capabilities:</strong>
+      <ul>
+        <li><strong>Single Instance Lock:</strong> Prevents multiple application windows from conflicting. Launching the desktop shortcut while already running instantly restores and focuses your active session.</li>
+        <li><strong>Background Tray Running:</strong> Closing the main application window minimizes it to the Windows notification tray (near the clock) rather than shutting down, keeping background synchronizations active.</li>
+        <li><strong>Local Disk Mirroring:</strong> All project data, staff submissions, and billing records automatically mirror to your local hard drive (<code>%AppData%\krishna-decor-manager-desktop\data\krishna-decor.json</code>) in real time. Full read and write capabilities are preserved even during internet outages.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">02</span> Getting Started & Sign-In</h2>
+    <p>
+      Launch <strong>Krishna Decor Manager</strong> from your Desktop shortcut or Windows Start Menu. The system will load the login gateway.
+    </p>
+    <ol>
+      <li>Enter your registered Manager user name or email (e.g., <code>Dinesh</code>) and secure password.</li>
+      <li>Click <strong>Sign in</strong>. Your authenticated session is encrypted and retained securely.</li>
+      <li>The app automatically verifies connectivity with the cloud database (Render cloud API) and your local backup mirror.</li>
+    </ol>
+    <p><strong>Top Navigation Status Indicators:</strong></p>
+    <ul>
+      <li><span class="badge badge-green">Synced</span> — All project edits, quotes, and customer records are safely backed up to both cloud and local storage.</li>
+      <li><span class="badge badge-blue">Syncing</span> — Background transactions are actively transmitting.</li>
+      <li><span class="badge badge-amber">Offline Mode</span> — Work continues uninterrupted; all actions are queued locally and automatically committed once connectivity is restored.</li>
+    </ul>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">03</span> Project & Customer Profile Management</h2>
+    <p>
+      Projects represent individual customer sites (villas, apartments, commercial offices). Every project encapsulates its measured spaces, material line items, staff drafts, formal quotations, and payment milestones.
+    </p>
+    <h3>Creating a Project:</h3>
+    <ol>
+      <li>Click the <strong>+ New Project</strong> button in the left sidebar.</li>
+      <li>Enter the <strong>Project / Site Name</strong> (e.g., <em>Gomtesh Nagar Villa 4</em>).</li>
+      <li>Fill in customer details: <strong>Customer Full Name</strong>, <strong>Primary Mobile Number</strong>, and <strong>Site Address</strong>.</li>
+      <li>Optionally designate an <strong>Assigned Staff Member</strong> (e.g., <em>isra</em>) so the job immediately routes to that technician's mobile measurement device.</li>
+      <li>Click <strong>Create Project</strong>.</li>
+    </ol>
+    <p>
+      Use the fast search bar (<code>Ctrl + F</code>) at any time to instantly filter your client list by name, address, phone number, or project status.
+    </p>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">04</span> Rooms, Spaces & Multi-Measurement Openings</h2>
+    <p>
+      Rooms represent individual dressing areas within a project. The manager app supports standard residential and commercial spaces as well as custom named zones.
+    </p>
+    <h3>Multi-Measurement Openings per Room:</h3>
+    <p>
+      A single room often contains multiple windows, French doors, or balconies requiring different fabric cuts. Rather than creating duplicate rooms, the manager app allows defining multiple measurement sets within a single area:
+    </p>
+    <ul>
+      <li>Select the room (e.g., <em>Living Room</em>) and click <strong>+ Add Measurement Set</strong>.</li>
+      <li>Provide a descriptive label (e.g., <em>Main Balcony Window</em>, <em>Dining Side Window</em>).</li>
+      <li>Enter <strong>Width</strong> and <strong>Height</strong> in your preferred unit: <strong>Inches (in)</strong>, <strong>Feet (ft)</strong>, <strong>Meters (m)</strong>, or <strong>Centimeters (cm)</strong>.</li>
+      <li>The app standardizes measurements internally into inches and automatically updates the room's cumulative <strong>Measured Coverage (Total Sq Ft)</strong>.</li>
+    </ul>
+  </section>
+
+  <!-- Page Break for Formulas Section -->
+  <div class="page-break"></div>
+
+  <!-- Section 5 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">05</span> Materials Catalog & Automated Cost Formulas</h2>
+    <p>
+      When adding materials to any room, Krishna Decor's proprietary calculation engine (<code>calculateProduct</code>) automates fabric yardage, pleating allowances, drop calculations, and billable square footage:
+    </p>
+
+    <!-- Formula 1 -->
+    <div class="formula-card">
+      <div class="formula-title">1. Eylet & Ripple Curtains Formula (Main Curtains, Sheers, Linings)</div>
+      <div class="formula-math">
+        Panels (A) = ⌈Width / 20⌉<br>
+        Drops (B) = (Height + 15) / 39<br>
+        Total Fabric Quantity = A × B  (meters, strictly rounded to 2 decimal places)
+      </div>
+      <div class="formula-desc">
+        Width is divided by 20 inches and rounded up to determine the required fabric panels (A). 15 inches is added to the height for top heading and bottom hem allowances, then divided by 39 inches per meter to determine drops (B).
+      </div>
+    </div>
+
+    <!-- Formula 2 -->
+    <div class="formula-card">
+      <div class="formula-title">2. American Pleat Curtains Formula</div>
+      <div class="formula-math">
+        Panels = ⌈Width / 18⌉<br>
+        Drops = (Height + 15) / 39<br>
+        Total Fabric Quantity = Panels × Drops  (meters)
+      </div>
+      <div class="formula-desc">
+        Divides width by 18 inches to accommodate standard American pleat fullness.
+      </div>
+    </div>
+
+    <!-- Formula 3 -->
+    <div class="formula-card">
+      <div class="formula-title">3. Valence / Valance Curtains Formula</div>
+      <div class="formula-math">
+        Breadths = ⌈Width / 50⌉<br>
+        Quantity = ⌈((Breadths × 15) / 39) × 2⌉ / 2  (rounded to nearest 0.5 meter)
+      </div>
+      <div class="formula-desc">
+        Calculates required pattern breadths based on 50" fabric width, rounding to the nearest half-meter.
+      </div>
+    </div>
+
+    <!-- Formula 4 -->
+    <div class="formula-card">
+      <div class="formula-title">4. Roman Blinds Formula</div>
+      <div class="formula-math">
+        Fabric Quantity = ⌈Width / 50⌉ × ((Height + 20) / 39)  (meters)<br>
+        Chargeable Area = ⌈(Width / 12) × 2⌉ / 2 × ⌈(Height / 12) × 2⌉ / 2  (sq ft, min. 11 sq ft)
+      </div>
+      <div class="formula-desc">
+        Includes stitching surcharge (Standard: ₹200/sq ft, Premium: ₹350/sq ft) and enforces an 11 sq ft minimum billable threshold per blind.
+      </div>
+    </div>
+
+    <!-- Formula 5 -->
+    <div class="formula-card">
+      <div class="formula-title">5. Surface Coverings (Roller / Zebra / Venetian Blinds, Wallpaper, Carpet)</div>
+      <div class="formula-math">
+        Area = (Width / 12) × (Height / 12)  (sq ft)
+      </div>
+    </div>
+
+    <!-- Formula 6 -->
+    <div class="formula-card">
+      <div class="formula-title">6. 16 Manual Quantity Materials with Optional Measurements</div>
+      <p style="font-size: 8.5pt; color: #49769F; margin: 4px 0;">
+        <em>Bed border fabric, Bed back making, Soft board fabric, Soft board making, Seating fabric, Seating making, Pillow fabric, Pillow, Mattress, Wallpaper rolls, Wallpaper pasting, Customised wallpaper, Customised wallpaper pasting, Carpet, Bed sheet, Bed set.</em>
+      </p>
+      <div class="formula-desc">
+        These designated materials allow direct entry of piece counts (pcs) or rolls while keeping dimensional entries optional.
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 6 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">06</span> Automatic Curtain Hardware Calculations</h2>
+    <p>
+      Hardware is never estimated by guesswork. Whenever curtains are added to any room, the system runs <code>curtainHardwareLines</code> to automatically calculate all necessary tracks, accessories, and brackets:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Hardware Component</th>
+          <th>Calculation Formula</th>
+          <th>Unit</th>
+          <th>GST Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Track (Running Length)</strong></td>
+          <td><code>⌈Width in inches / 12⌉</code> for each curtain set</td>
+          <td>Running ft</td>
+          <td>18%</td>
+        </tr>
+        <tr>
+          <td><strong>Runners</strong></td>
+          <td><code>Track Running Feet × 3</code> (3 runners per running foot)</td>
+          <td>Pieces (pcs)</td>
+          <td>18%</td>
+        </tr>
+        <tr>
+          <td><strong>Hooks</strong></td>
+          <td><code>Track Running Feet × 3</code> (3 hooks per running foot)</td>
+          <td>Pieces (pcs)</td>
+          <td>18%</td>
+        </tr>
+        <tr>
+          <td><strong>Mounting Clamps</strong></td>
+          <td><code>max(2, ⌈Track Running Feet / 3⌉ + 1)</code> based on chosen clamp type</td>
+          <td>Pieces (pcs)</td>
+          <td>18%</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout-box">
+      <strong>Clamp Options Supported:</strong> <em>Ceiling Clamps</em>, <em>Single wall clamp</em>, or <em>Double wall clamp</em>. The quantity scales dynamically with the track span.
+    </div>
+  </section>
+
+  <!-- Section 7 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">07</span> Field Staff Coordination & Draft Ingestion</h2>
+    <p>
+      Field technicians capture physical measurements on-site using the mobile app and upload them directly to your workspace.
+    </p>
+    <ul>
+      <li><strong>Field Review Alert:</strong> When staff submit measurements, an alert appears in the room workspace detailing the staff member's name and specific notes.</li>
+      <li><strong>Edit & Approval:</strong> Managers can modify dimensions, change clamp types, or override prices before accepting the draft into the official project scope.</li>
+      <li><strong>Tombstone Deletion Protection:</strong> If a manager deletes an erroneous or test submission from the staff feed, the system logs a permanent local deletion tombstone. This guarantees that subsequent cloud sync operations will not restore the deleted item.</li>
+    </ul>
+  </section>
+
+  <!-- Page Break for Quotations Section -->
+  <div class="page-break"></div>
+
+  <!-- Section 8 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">08</span> Quotations: Generation, Editing & Math Derivation</h2>
+    <p>
+      Quotations transform raw room specifications into formal commercial estimates presented to clients.
+    </p>
+    <h3>1. Creating a Quotation</h3>
+    <p>
+      In the project view, navigate to the <strong>Quotations</strong> tab and click <strong>Create Quotation</strong>. The system generates an official quotation record with an automated sequence identifier (e.g., <code>KD-26-001</code>).
+    </p>
+
+    <h3>2. Inline Sheet Editing</h3>
+    <p>
+      You can fine-tune values directly on the rendered quotation sheet:
+    </p>
+    <ul>
+      <li><strong>Quantity:</strong> Editable inline, strictly formatted to 2 decimal places.</li>
+      <li><strong>Unit Price:</strong> Editable inline in Indian Rupees (₹). Totals and taxes update in real time.</li>
+    </ul>
+
+    <h3>3. Mathematical Formula Transparency</h3>
+    <p>
+      To build complete trust with clients, every line item displays its mathematical derivation directly beneath the product name:
+    </p>
+    <div class="formula-math" style="font-size: 8.5pt;">
+      Formula: ⌈144"/20⌉ × (108"+15)/39 = 8 panels × 3.15 drops = 25.23 m
+    </div>
+    <p>
+      Clients immediately see how their window dimensions translate into fabric meterage, eliminating confusion or disputes.
+    </p>
+
+    <h3>4. Unified Hardware Section at Bottom</h3>
+    <p>
+      Rather than cluttering the quotation with hardware line items under every separate bedroom and window, the manager app automatically consolidates (<code>unifyQuoteItems</code>) all hardware into unified items at the bottom of the document:
+    </p>
+    <ol>
+      <li><strong>Track</strong> (consolidated running feet across all rooms)</li>
+      <li><strong>Runners</strong> (total consolidated count)</li>
+      <li><strong>Hooks</strong> (total consolidated count)</li>
+      <li><strong>Mounting Clamps</strong> (grouped by clamp type)</li>
+    </ol>
+
+    <h3>5. Comparing & Approving Drafts</h3>
+    <ul>
+      <li><strong>Compare Drafts:</strong> Click <em>Compare Drafts</em> to inspect a side-by-side comparison of untaxed amounts, GST taxes, and final totals across different revisions.</li>
+      <li><strong>Approval:</strong> Once accepted, set the status dropdown from <strong>Draft</strong> to <strong>Approved</strong>. This locks the pricing and enables the Tax Invoice and Payment modules.</li>
+    </ul>
+  </section>
+
+  <!-- Section 9 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">09</span> Tax Invoicing, Commercial Billing & PDF Export</h2>
+    <p>
+      Once a quotation is marked <strong>Approved</strong>, the app unlocks the official <strong>Tax Invoice</strong> view.
+    </p>
+    <h3>Commercial Invoicing Differences:</h3>
+    <ul>
+      <li><strong>Sanitized Product Descriptions:</strong> Unlike quotations, commercial invoices omit internal formula descriptions, room prefixes, and dimensional math notes, presenting a clean line item description (e.g., <em>Ripple main curtain</em>).</li>
+      <li><strong>Dual-Table Structure:</strong>
+        <ol>
+          <li><em>Primary Table:</em> Main decorative fabrics, curtain sets, blinds, wallpapers, and bespoke items.</li>
+          <li><em>Secondary Table:</em> Track hardware, runners, hooks, clamps, stitching labor, installation, and delivery charges.</li>
+        </ol>
+      </li>
+      <li><strong>Statutory Tax Breakdown:</strong>
+        <ul>
+          <li><strong>5% GST:</strong> Applied to core textile fabrics, curtain cloths, and upholstery.</li>
+          <li><strong>18% GST:</strong> Applied to stitching services, blinds, hardware, installation, and transport.</li>
+          <li>Summarized into <strong>Untaxed Amount</strong>, <strong>SGST / UTGST</strong>, <strong>CGST</strong>, and <strong>Grand Total</strong>.</li>
+        </ul>
+      </li>
+      <li><strong>Standard Terms & Bank Details:</strong> Includes company GSTIN (<code>29AWZPK1722G1Z4</code>), payment terms (70% advance, 30% prior to delivery), Axis Bank wire transfer details, and customer signature line.</li>
+      <li><strong>Printing & PDF:</strong> Click <strong>Print Bill</strong> or <strong>Save PDF</strong> (or press <code>Ctrl + P</code>) to open the native Windows print dialog. Select <em>Save as PDF</em> to export a client-ready document.</li>
+    </ul>
+  </section>
+
+  <!-- Section 10 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">10</span> Payment Logging & Overpayment Prevention</h2>
+    <p>
+      Keep financial records synchronized throughout the project lifecycle:
+    </p>
+    <ul>
+      <li>Open the <strong>Payments</strong> panel on any approved project.</li>
+      <li>Click <strong>Record Payment</strong>, specify the amount received, payment mode (NEFT/RTGS, UPI, Cheque, Cash), and reference number.</li>
+      <li><strong>Server-Side Guardrail:</strong> The backend API strictly validates that cumulative payments cannot exceed the approved quotation total, blocking accidental overpayments with a <code>400 Bad Request</code> safety response.</li>
+      <li>The document footer automatically calculates and displays the current <strong>Balance Due</strong>.</li>
+    </ul>
+  </section>
+
+  <!-- Section 11 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">11</span> Windows Desktop Hub: Sync & Local Backups</h2>
+    <p>
+      The Windows desktop application includes a dedicated management utility: <strong>Windows Hub Sync Settings</strong>. Access it via the top application menu (<code>Krishna Decor → Windows Hub Sync Settings</code>) or by right-clicking the system tray icon.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Hub Feature</th>
+          <th>Description & Operating Procedure</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Test Cloud Connection</strong></td>
+          <td>Sends a ping to the cloud server and reports connection health and round-trip latency in milliseconds.</td>
+        </tr>
+        <tr>
+          <td><strong>Sync Now</strong></td>
+          <td>Triggers an immediate two-way synchronization between your local Windows PC and the 24/7 cloud server.</td>
+        </tr>
+        <tr>
+          <td><strong>Open Local Data Folder</strong></td>
+          <td>Opens Windows File Explorer directly to your local database folder containing <code>krishna-decor.json</code> and daily archives.</td>
+        </tr>
+        <tr>
+          <td><strong>Export Backup</strong></td>
+          <td>Prompts a Windows Save File dialog to export a complete <code>.json</code> database snapshot to an external drive or secondary backup folder.</td>
+        </tr>
+        <tr>
+          <td><strong>Import Backup</strong></td>
+          <td>Restores an existing backup file. A safety copy of your current database is automatically created prior to restoring.</td>
+        </tr>
+        <tr>
+          <td><strong>Start at Windows Login</strong></td>
+          <td>Ensures Krishna Decor launches automatically in the notification tray when your Windows computer starts up.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Section 12 -->
+  <section class="section">
+    <h2 class="section-title"><span class="section-num">12</span> Keyboard Shortcuts & Quick Reference</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th>Windows Shortcut</th>
+          <th>Context</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Find Projects / Clients</strong></td>
+          <td><code>Ctrl + F</code></td>
+          <td>Any screen</td>
+        </tr>
+        <tr>
+          <td><strong>Print Document / Save PDF</strong></td>
+          <td><code>Ctrl + P</code></td>
+          <td>Quotation or Invoice view</td>
+        </tr>
+        <tr>
+          <td><strong>Navigate to Previous Draft</strong></td>
+          <td><code>Alt + Left Arrow</code></td>
+          <td>Quotations tab</td>
+        </tr>
+        <tr>
+          <td><strong>Navigate to Next Draft</strong></td>
+          <td><code>Alt + Right Arrow</code></td>
+          <td>Quotations tab</td>
+        </tr>
+        <tr>
+          <td><strong>Add Custom Room Name</strong></td>
+          <td><code>Enter</code></td>
+          <td>Inside custom room text input</td>
+        </tr>
+        <tr>
+          <td><strong>Dismiss Modal Dialogs</strong></td>
+          <td><code>Esc</code></td>
+          <td>Any open modal window</td>
+        </tr>
+        <tr>
+          <td><strong>Restore from System Tray</strong></td>
+          <td><code>Double-Click</code></td>
+          <td>Windows taskbar tray icon</td>
+        </tr>
+        <tr>
+          <td><strong>Complete Application Exit</strong></td>
+          <td><code>Menu: Krishna Decor → Quit</code></td>
+          <td>Or right-click tray icon → Quit</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Footer -->
+  <footer class="doc-footer">
+    <div><strong>Krishna Decor</strong> · Spaces Dressed Beautifully · Belgaum, Karnataka</div>
+    <div>Windows Desktop Manager App — Official User Guide</div>
+  </footer>
+
+</body>
+</html>

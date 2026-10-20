@@ -1,5 +1,7 @@
 // Automated End-to-End Test for Krishna Decor:
 // Local Storage, Offline-First Operations, Functions of all 3 Apps, and Synchronization.
+import { startLocalApiServer } from '../api/src/server.js'
+import path from 'node:path'
 
 const BASE = 'http://127.0.0.1:8788/api'
 
@@ -35,6 +37,18 @@ async function request(path, options = {}) {
 async function runTests() {
   console.log('\n=== RUNNING COMPREHENSIVE KRISHNA DECOR SYNC & FUNCTION SUITE ===\n')
 
+  let server = null
+  try {
+    server = await startLocalApiServer({
+      port: 8788,
+      dataDirectory: path.join(process.env.APPDATA, 'krishna-decor-manager-desktop', 'data')
+    })
+  } catch (err) {
+    if (err.code !== 'EADDRINUSE') throw err
+  }
+
+  try {
+
   // 1. Health check
   console.log('1. Hub API Health Check')
   const health = await request('/health')
@@ -45,12 +59,12 @@ async function runTests() {
   if (health.data.setupRequired) {
     await request('/auth/bootstrap', {
       method: 'POST',
-      body: JSON.stringify({ name: 'sohan', email: 'sohanbhadale1234@gmail.com', password: '12345678' })
+      body: JSON.stringify({ name: 'Dinesh', email: 'dinesh@krishnadecor.local', password: 'KDecor2026' })
     })
   }
   const managerLogin = await request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ name: 'sohan', email: 'sohanbhadale1234@gmail.com', password: '12345678', role: 'manager' })
+    body: JSON.stringify({ name: 'Dinesh', email: 'dinesh@krishnadecor.local', password: 'KDecor2026', role: 'manager' })
   })
   assert(managerLogin.ok && managerLogin.data.token, 'Manager signs in successfully with JWT token')
   const managerToken = managerLogin.data.token
@@ -292,6 +306,11 @@ async function runTests() {
   console.log('\n=== SUMMARY ===')
   console.log(`Passed: ${passed}`)
   console.log(`Failed: ${failed}`)
+  } finally {
+    if (server) {
+      server.close()
+    }
+  }
   if (failed === 0) {
     console.log('ALL TESTS PASSED WITH 100% SUCCESS!\n')
     process.exit(0)

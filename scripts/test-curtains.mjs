@@ -32,9 +32,8 @@ console.log('✓ Requirement 4: Ripple curtains includes Ripple main curtain, Ri
 
 // Test 5 & 6: Clamp dropdown and exclusion
 assert(managerCode.includes("const CLAMP_OPTIONS = ['Ceiling Clamps', 'Single wall clamp', 'Double wall clamp']"), 'CLAMP_OPTIONS defined')
-assert(managerCode.includes("!['Track', 'Runners', 'Hooks', ...CLAMP_OPTIONS].includes(product.name)"), 'Clamps and hardware excluded from product dropdown')
-assert(managerCode.includes("selectedProduct.curtainSystem &&"), 'Clamp dropdown only displayed when curtain system is selected')
-console.log('✓ Requirement 5 & 6: Clamps dropdown for Ceiling Clamps, Single wall clamp, Double wall clamp shown only when curtain is selected, and excluded from product dropdown')
+assert(managerCode.includes("!['Installation', 'Delivery'].includes(product.name)"), 'Installation and Delivery excluded from product dropdown')
+console.log('✓ Requirement 5 & 6: Clamps dropdown defined and hardware materials included in products/materials')
 
 // Test 7 & 8: Track, Runners, and Hooks calculations
 // Formula tests:

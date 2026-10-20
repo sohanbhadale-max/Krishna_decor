@@ -1,4 +1,6 @@
 // Automated test verifying Manager App editing and syncing of Staff App submissions
+import { startLocalApiServer } from '../api/src/server.js'
+import path from 'node:path'
 
 const BASE = 'http://127.0.0.1:8788/api'
 
@@ -34,10 +36,21 @@ async function request(path, options = {}) {
 async function run() {
   console.log('\n=== TESTING MANAGER EDITING OF STAFF SUBMISSIONS ===\n')
 
+  let server = null
+  try {
+    server = await startLocalApiServer({
+      port: 8788,
+      dataDirectory: path.join(process.env.APPDATA, 'krishna-decor-manager-desktop', 'data')
+    })
+  } catch (err) {
+    if (err.code !== 'EADDRINUSE') throw err
+  }
+
+  try {
   // 1. Authenticate manager
   const managerLogin = await request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ name: 'sohan', email: 'sohanbhadale1234@gmail.com', password: '12345678', role: 'manager' })
+    body: JSON.stringify({ name: 'Dinesh', email: 'dinesh@krishnadecor.local', password: 'KDecor2026', role: 'manager' })
   })
   assert(managerLogin.ok && managerLogin.data.token, 'Manager signed in')
   const managerToken = managerLogin.data.token
@@ -186,11 +199,17 @@ async function run() {
   const getProj3 = await request(`/projects/${testProjectId}`, { headers: managerHeaders })
   assert(getProj3.data.project.staffDrafts.length === 0, 'Staff draft successfully removed from project')
 
-  // Clean up test project
+  // Clean up test project and staff
   await request(`/projects/${testProjectId}`, { method: 'DELETE', headers: managerHeaders })
-  console.log('\nCleaned up test project.\n')
+  await request(`/staff/${staffId}`, { method: 'DELETE', headers: managerHeaders })
+  console.log('\nCleaned up test project and staff.\n')
 
   console.log(`=== SUMMARY: ${passed} passed, ${failed} failed ===`)
+  } finally {
+    if (server) {
+      server.close()
+    }
+  }
   if (failed > 0) process.exit(1)
 }
 

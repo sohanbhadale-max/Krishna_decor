@@ -5,8 +5,9 @@
   "main": "src/main.cjs",
   "scripts": {
     "build:manager": "node scripts/build-manager.mjs",
+    "test": "node scripts/test-backup-service.cjs",
     "start": "npm run build:manager && electron .",
-    "dist:win": "npm run build:manager && electron-builder --win nsis"
+    "dist:win": "npm run build:manager && electron-builder --win"
   },
   "devDependencies": {
     "electron": "^39.2.6",
@@ -49,15 +50,25 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
     "nsis": {
+      "artifactName": "Krishna-Decor-Manager-Setup-${version}.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "Krishna-Decor-Manager-Portable-${version}.${ext}"
     }
   }
 }

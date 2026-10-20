@@ -52,8 +52,25 @@ function render(status) {
   byId('backupCount').textContent = (status.backupCount || 0) + ' daily snapshot' + (status.backupCount === 1 ? '' : 's')
   byId('startAtLogin').checked = status.startAtLogin !== false
 
+  // backup_krishna_decor stats
+  const stats = status.backupStats || {}
+  const backupBadge = byId('backupStatusBadge')
+  if (stats.configured && stats.backupDirectory) {
+    byId('backupDirPath').textContent = stats.backupDirectory
+    backupBadge.className = 'badge online'
+    backupBadge.textContent = 'Auto-Backup Active'
+  } else {
+    byId('backupDirPath').textContent = 'Location not chosen yet'
+    backupBadge.className = 'badge offline'
+    backupBadge.textContent = 'Setup Required'
+  }
+
+  byId('backupProjectCount').textContent = (stats.projectCount || 0) + ' project' + (stats.projectCount === 1 ? '' : 's')
+  byId('backupDraftCount').textContent = (stats.draftsCount || 0) + ' draft' + (stats.draftsCount === 1 ? '' : 's')
+  byId('backupInvoiceCount').textContent = (stats.invoicesCount || 0) + ' invoice' + (stats.invoicesCount === 1 ? '' : 's')
+
   if (status.lastBackupTime) {
-    byId('lastBackupTime').textContent = 'Last backup: ' + new Date(status.lastBackupTime).toLocaleTimeString()
+    byId('lastBackupTime').textContent = 'Last snapshot: ' + new Date(status.lastBackupTime).toLocaleTimeString()
   } else if (status.hasBackup) {
     byId('lastBackupTime').textContent = 'Active (Local database intact)'
   }
@@ -122,6 +139,43 @@ byId('resetCloudBtn').addEventListener('click', async () => {
     byId('cloudEditBox').classList.add('hidden')
     showMessage('Default cloud address restored.', 'success')
     await checkCloudConnection(defaultUrl)
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
+})
+
+byId('openBackupFolderBtn').addEventListener('click', async () => {
+  try {
+    await window.krishnaHub.openBackupDirectory()
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
+})
+
+byId('changeBackupFolderBtn').addEventListener('click', async () => {
+  try {
+    const res = await window.krishnaHub.selectBackupDirectory()
+    if (!res.canceled) {
+      showMessage('Backup location updated to: ' + res.backupDirectory, 'success')
+      const status = await window.krishnaHub.status()
+      render(status)
+    }
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
+})
+
+byId('resyncBackupBtn').addEventListener('click', async () => {
+  showMessage('Resyncing all projects, drafts, and invoices into backup_krishna_decor…')
+  try {
+    const result = await window.krishnaHub.syncProjectsBackup()
+    if (result && result.success) {
+      showMessage(`Resynced ${result.syncedProjects} projects (${result.totalDrafts} drafts, ${result.totalInvoices} invoices) successfully!`, 'success')
+      const status = await window.krishnaHub.status()
+      render(status)
+    } else {
+      showMessage(result?.reason || 'Resync failed. Please configure backup directory first.', 'error')
+    }
   } catch (err) {
     showMessage(err.message, 'error')
   }

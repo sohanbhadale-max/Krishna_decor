@@ -56,10 +56,17 @@ async function run() {
   // PHASE 2: MANAGER AUTHENTICATION (WINDOWS DESKTOP & ANDROID MANAGER)
   // -------------------------------------------------------------
   console.log('\n--- PHASE 2: MANAGER DESKTOP AUTHENTICATION ---')
-  const managerLogin = await api('/auth/login', {
+  let managerLogin = await api('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ name: 'sohan', password: '12345678', role: 'manager' })
+    body: JSON.stringify({ name: 'Dinesh', password: 'KDecor2026', role: 'manager' })
   })
+  if (!managerLogin.ok) {
+    // Cloud still on previous deployment credentials until git push
+    managerLogin = await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'sohan', password: '12345678', role: 'manager' })
+    })
+  }
   assert(managerLogin.ok && managerLogin.data.token, 'Windows Manager authenticates successfully against 24/7 cloud')
   const managerToken = managerLogin.data.token
   const managerHeaders = { Authorization: 'Bearer ' + managerToken }
@@ -274,7 +281,7 @@ async function run() {
     try {
       const prev = JSON.parse(readFileSync(destination, 'utf8'))
       if (Array.isArray(prev.users) && prev.users.some(u => Boolean(u.passwordHash))) {
-        preservedUsers = prev.users
+        preservedUsers = prev.users.filter(u => u.role !== 'staff' || u.name?.toLowerCase() !== 'isra')
       }
     } catch {}
   }
@@ -282,19 +289,11 @@ async function run() {
     preservedUsers = [
       {
         id: '3c8d7d36-7fa6-4b1c-8526-179be4456a93',
-        name: 'sohan',
-        email: 'sohanbhadale1234@gmail.com',
+        name: 'Dinesh',
+        email: 'dinesh@krishnadecor.local',
         role: 'manager',
-        passwordHash: 'ca1e12c2e12072a2f5e68b801dee0e0e:19267edcfa42e320ee365168a67f67e5f27ecdf7528b805460e0dc687b25a83141080ee917040f8f0a5cb6a20d7501ec02cfeefbda8b6a6d8efee81d5dc1e573',
+        passwordHash: '4087541dc2884af1f5323584dac8ca26:9a767515cbbde449cc73ec20ad81ba3f0bc4f8e61ca50f3f07c8df23a77465930868a868419d8eb7fb8dab5fd30a6162243416547e2aa16980bf0319de5f1015',
         createdAt: '2026-10-07T16:36:39.226Z'
-      },
-      {
-        id: '137a7965-b105-40f7-9c37-d6e2e984f8d1',
-        name: 'isra',
-        email: 'isra@krishnadecor.local',
-        role: 'staff',
-        passwordHash: '0b585636702c3e6d4b5eccaf3a35ed75:fd47484b8ddfc6ad2f2f32875035bbec9cae3339e7dd532a4b3aa448a9a2bcf3058f02320a4545f4251e9970f27df9052ff12ecb820d965a435267ac3a409cdb',
-        createdAt: '2026-10-14T07:32:32.442Z'
       }
     ]
   }
@@ -316,7 +315,7 @@ async function run() {
 
   const readBack = JSON.parse(readFileSync(destination, 'utf8'))
   assert(
-    readBack.projects.some((p) => p.id === projectId && p.payments.length === 1),
+    (readBack.projects || []).some((p) => p && p.id === projectId && (p.payments || []).length === 1),
     'Windows Desktop local mirror contains full cloud dataset (project, quotations, payments)'
   )
 
